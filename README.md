@@ -1,25 +1,11 @@
-This is a basic plugin template for use with CommonLibSSE
+## Poise - Stagger Overhaul SKSE
+Implements a Poise system inspired by Dark Souls 1 into Skyrim
 
 ## Requirements
-* [CMake](https://cmake.org/)
-	* Add this to your `PATH`
-* [PowerShell](https://github.com/PowerShell/PowerShell/releases/latest)
-* [Vcpkg](https://github.com/microsoft/vcpkg)
-	* Add the environment variable `VCPKG_ROOT` with the value as the path to the folder containing vcpkg
-* [Visual Studio Community 2019](https://visualstudio.microsoft.com/)
-	* C++ Clang tools for Windows
-	* Desktop development with C++
-
-## Register Visual Studio as a Generator
-* Open `x64 Native Tools Command Prompt`
-* Run `cmake`
-* Close the cmd window
-
-## Building
-```
-git clone https://github.com/Ryan-rsm-McKenzie/ExamplePlugin-CommonLibSSE
-cd ExamplePlugin-CommonLibSSE
-git submodule update --init --recursive
-git submodule update --recursive --remote
-cmake -B build -S .
-```
+* [SKSE](http://skse.silverlock.org/)
+	* Needed for the Plugin itself
+* [Nemesis](https://www.nexusmods.com/skyrimspecialedition/mods/60033)
+	* For the stagger behaviours and animations
+* [Animation Motion Revolution](https://www.nexusmods.com/skyrimspecialedition/mods/50258)
+	* For the Animation Motion Data
+	

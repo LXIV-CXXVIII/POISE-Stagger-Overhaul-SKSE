@@ -6,7 +6,7 @@ set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
 # ---- Project ----
 
 project(
-	ExampleProject
+	loki_POISE
 	VERSION 1.0.0
 	LANGUAGES CXX
 )
@@ -126,6 +126,14 @@ set(headers
 set(sources
 	src/main.cpp
 	src/PCH.cpp
+	src/Loki_PluginTools.cpp
+	src/Loki_PluginTools.h
+	src/Loki_PoiseMod.cpp
+	src/Loki_PoiseMod.h
+	src/Loki_TrueHUDControl.cpp
+	src/Loki_TrueHUDControl.h
+	src/TrueHUDAPI.h
+
 )
 
 source_group(
