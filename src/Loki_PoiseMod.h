@@ -63,14 +63,12 @@ private:
     static float CalculateMaxPoise(RE::Actor* a_actor);
     static bool IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk);
     static float GetSubmergedLevel(RE::Actor* a_actor, float a_zPos, RE::TESObjectCELL* a_cell);
-    static void HandleHealthDamage_Actor(RE::Actor* a_actor, RE::Actor* a_attacker, float a_damage);
     static void HandleHealthDamage_Character(RE::Character* a_char, RE::Actor* a_attacker, float a_damage);
     static void HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_playerChar, RE::Actor* a_attacker, float a_damage);
     static void ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData);
 
     static inline REL::Relocation<decltype(GetSubmergedLevel)> _GetSubmergedLevel;
     static inline REL::Relocation<decltype(ProcessHitEvent)> _ProcessHitEvent;
-    static inline REL::Relocation<decltype(HandleHealthDamage_Actor)> _HandleHealthDamage_Actor;
     static inline REL::Relocation<decltype(HandleHealthDamage_Character)> _HandleHealthDamage_Character;
     static inline REL::Relocation<decltype(HandleHealthDamage_PlayerCharacter)> _HandleHealthDamage_PlayerCharacter;
     static inline REL::Relocation<decltype(IsActorKnockdown)> _IsActorKnockdown;

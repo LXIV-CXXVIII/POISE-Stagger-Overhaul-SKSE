@@ -161,9 +161,6 @@ void Loki_PoiseMod::InstallIsActorKnockdownHook() {
 }
 
 void Loki_PoiseMod::InstallVFuncHooks() {
-    //REL::Relocation<std::uintptr_t> ActorVtbl{ RE::Offset::Actor::Vtbl };
-    //_HandleHealthDamage_Actor = ActorVtbl.write_vfunc(0x104, HandleHealthDamage_Actor);
-
     REL::Relocation<std::uintptr_t> CharacterVtbl{ REL::ID(261397) };  // 165DA40
     _HandleHealthDamage_Character = CharacterVtbl.write_vfunc(0x104, HandleHealthDamage_Character);
 
@@ -447,233 +444,147 @@ float Loki_PoiseMod::GetSubmergedLevel(RE::Actor* a_actor, float a_zPos, RE::TES
 
 }
 
-void Loki_PoiseMod::HandleHealthDamage_Actor(RE::Actor* a_actor, RE::Actor* a_attacker, float a_damage) {
-
-    auto ptr = Loki_PoiseMod::GetSingleton();
-    auto hitData = a_attacker->currentProcess->middleHigh->lastHitData;
-    if (hitData->attackData->data.attackSpell) {
-        auto avHealth = a_actor->GetActorValue(RE::ActorValue::kHealth);
-        auto avParalysis = a_actor->GetActorValue(RE::ActorValue::kParalysis);
-        if (avHealth <= 0.05f || a_actor->IsInKillMove() || avParalysis || !ptr->PoiseSystemEnabled) { return _HandleHealthDamage_Actor(a_actor, a_attacker, a_damage); }
-
-        if (hitData->healthDamage <= 0.00f) hitData->healthDamage = 0.00f;
-        a_actor->pad0EC -= (int)hitData->healthDamage; // there was some bullshit with integer underflow
-        if (a_actor->pad0EC > 100000) a_actor->pad0EC = 0.00f; // this fixed it...
-
-        auto hitPos = a_attacker->GetPosition();
-        auto heading = a_actor->GetHeadingAngle(hitPos, false);
-        auto stagDir = (heading >= 0.0f) ? heading / 360.0f : (360.0f + heading) / 360.0f;
-        if (a_actor->GetHandle() == a_attacker->GetHandle()) { stagDir = 0.0f; } // 0 when self-hit
-
-        auto a = a_actor->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant);
-        a->Cast(ptr->poiseDelaySpell, false, a_actor, 1.0f, false, 0.0f, 0);
-
-        float maxPoise = Loki_PoiseMod::CalculateMaxPoise(a_actor);
-        auto prcnt25 = maxPoise * 0.25f;
-        auto prcnt35 = maxPoise * 0.35f;
-        auto prcnt50 = maxPoise * 0.50f;
-
-        bool isBlk = false;
-        static RE::BSFixedString str = NULL;
-        a_actor->GetGraphVariableBool(ptr->isBlocking, isBlk);
-        if ((float)a_actor->pad0EC <= 0.00f) {
-            a_actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
-            a_actor->pad0EC = maxPoise; // remember earlier when we calculated max poise health?
-            if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
-                a_actor->SetGraphVariableFloat(ptr->staggerMagn, 1.00f);
-                a_actor->NotifyAnimationGraph(ptr->ae_Stagger);          // play animation
-            } else {
-                if (hitData->flags == RE::HitData::Flag::kExplosion) {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseLargestFwd;
-                    } else {
-                        str = ptr->poiseLargestBwd;
-                    }
-                    a_actor->NotifyAnimationGraph(str);         // if those, play tier 4
-                } else {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseMedFwd;
-                    } else {
-                        str = ptr->poiseMedBwd;
-                    }
-                    a_actor->NotifyAnimationGraph(str);  // if not those, play tier 2
-                }
-            }
-        } else if ((float)a_actor->pad0EC < prcnt25 || (float)a_actor->pad0EC < 2.00f) {
-            a_actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
-            if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
-                a_actor->SetGraphVariableFloat(ptr->staggerMagn, 0.75f);
-                a_actor->NotifyAnimationGraph(ptr->ae_Stagger);
-            } else {
-                if (hitData->flags == RE::HitData::Flag::kExplosion) {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseLargeFwd;
-                    } else {
-                        str = ptr->poiseLargeBwd;
-                    }
-                    a_actor->NotifyAnimationGraph(str);
-                } else {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseMedFwd;
-                    } else {
-                        str = ptr->poiseMedBwd;
-                    }
-                    isBlk ? hitData->pushBack = 7.5f : a_actor->NotifyAnimationGraph(str);
-                }
-            }
-        } else if ((float)a_actor->pad0EC < prcnt35 || (float)a_actor->pad0EC < 5.00f) {
-            a_actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
-            if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
-                a_actor->SetGraphVariableFloat(ptr->staggerMagn, 0.50f);
-                a_actor->NotifyAnimationGraph(ptr->ae_Stagger);
-            } else {
-                if (hitData->flags == RE::HitData::Flag::kExplosion) {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseLargeFwd;
-                    } else {
-                        str = ptr->poiseLargeBwd;
-                    }
-                    a_actor->NotifyAnimationGraph(str);
-                } else {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseSmallFwd;
-                    } else {
-                        str = ptr->poiseSmallBwd;
-                    }
-                    isBlk ? hitData->pushBack = 5.0f : a_actor->NotifyAnimationGraph(str);
-                }
-            }
-        } else if ((float)a_actor->pad0EC < prcnt50 || (float)a_actor->pad0EC < 10.00f) {
-            a_actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
-            if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
-                a_actor->SetGraphVariableFloat(ptr->staggerMagn, 0.50f);
-                a_actor->NotifyAnimationGraph(ptr->ae_Stagger);
-            } else {
-                if (stagDir > 0.25f && stagDir < 0.75f) {
-                    str = ptr->poiseSmallFwd;
-                } else {
-                    str = ptr->poiseSmallBwd;
-                }
-                isBlk ? hitData->pushBack = 2.50f : a_actor->NotifyAnimationGraph(str);
-            }
-        };
-    };
-
-    logger::info("HealthDamage_Actor executed");
-    return _HandleHealthDamage_Actor(a_actor, a_attacker, a_damage);
-
-}
-
 void Loki_PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Actor* a_attacker, float a_damage) {
 
     auto ptr = Loki_PoiseMod::GetSingleton();
-    auto hitData = a_attacker->currentProcess->middleHigh->lastHitData;
-    if (hitData->attackData->data.attackSpell) {
-        auto avHealth = a_char->GetActorValue(RE::ActorValue::kHealth);
-        auto avParalysis = a_char->GetActorValue(RE::ActorValue::kParalysis);
-        if (avHealth <= 0.05f || a_char->IsInKillMove() || avParalysis || !ptr->PoiseSystemEnabled) { return _HandleHealthDamage_Character(a_char, a_attacker, a_damage); }
+    auto avHealth = a_char->GetActorValue(RE::ActorValue::kHealth);
+    auto avParalysis = a_char->GetActorValue(RE::ActorValue::kParalysis);
+    if (!a_char || !a_attacker || avHealth <= 0.05f || a_char->IsInKillMove() || avParalysis || !ptr->PoiseSystemEnabled) { return _HandleHealthDamage_Character(a_char, a_attacker, a_damage); }
 
-        if (hitData->healthDamage <= 0.00f) hitData->healthDamage = 0.00f;
-        a_char->pad0EC -= (int)hitData->healthDamage; // there was some bullshit with integer underflow
-        if (a_char->pad0EC > 100000) a_char->pad0EC = 0.00f; // this fixed it...
+    using spellType = RE::MagicSystem::SpellType;
 
-        auto hitPos = a_attacker->GetPosition();
-        auto heading = a_char->GetHeadingAngle(hitPos, false);
-        auto stagDir = (heading >= 0.0f) ? heading / 360.0f : (360.0f + heading) / 360.0f;
-        if (a_char->GetHandle() == a_attacker->GetHandle()) { stagDir = 0.0f; } // 0 when self-hit
-
-        auto a = a_char->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant);
-        a->Cast(ptr->poiseDelaySpell, false, a_char, 1.0f, false, 0.0f, 0);
-
-        float maxPoise = Loki_PoiseMod::CalculateMaxPoise(a_char);
-        auto prcnt25 = maxPoise * 0.25f;
-        auto prcnt35 = maxPoise * 0.35f;
-        auto prcnt50 = maxPoise * 0.50f;
-
-        bool isBlk = false;
-        static RE::BSFixedString str = NULL;
-        a_char->GetGraphVariableBool(ptr->isBlocking, isBlk);
-        if ((float)a_char->pad0EC <= 0.00f) {
-            a_char->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
-            a_char->pad0EC = maxPoise; // remember earlier when we calculated max poise health?
-            if (a_char->HasKeyword(ptr->kCreature) || a_char->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
-                a_char->SetGraphVariableFloat(ptr->staggerMagn, 1.00f);
-                a_char->NotifyAnimationGraph(ptr->ae_Stagger);          // play animation
-            } else {
-                if (hitData->flags == RE::HitData::Flag::kExplosion) {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseLargestFwd;
-                    } else {
-                        str = ptr->poiseLargestBwd;
+    float a_result = 0.00f;
+    auto hitData = [a_attacker]() -> RE::HitData* {
+        auto process = a_attacker->currentProcess;
+        if (!process) { return nullptr; };
+        auto middleHigh = process->middleHigh;
+        if (!middleHigh) { return nullptr; };
+        auto lastHitData = middleHigh->lastHitData;
+        return lastHitData ? lastHitData : nullptr;
+    }();
+    if (!hitData) {
+        a_result = 0.00f;
+    }
+    else {
+        auto spellItem = [hitData]() -> RE::SpellItem* {
+            auto attackData = hitData->attackData;
+            if (!attackData) { return nullptr; };
+            auto attackSpell = attackData->data.attackSpell;
+            return attackSpell ? attackSpell : nullptr;
+        }();
+        if (!spellItem) {
+            a_result = 0.00f;
+        }
+        else {
+            if (spellItem->data.spellType == spellType::kSpell) {
+                for (auto idx : spellItem->effects) {
+                    if (idx) {
+                        a_result += idx->cost;
                     }
-                    a_char->NotifyAnimationGraph(str);         // if those, play tier 4
-                } else {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseMedFwd;
-                    } else {
-                        str = ptr->poiseMedBwd;
-                    }
-                    a_char->NotifyAnimationGraph(str);  // if not those, play tier 2
                 }
             }
-        } else if ((float)a_char->pad0EC < prcnt25 || (float)a_char->pad0EC < 2.00f) {
+            else { a_result = 0.00f; }
+
+            a_char->pad0EC -= (int)a_result;
+            if (a_char->pad0EC > 100000) a_char->pad0EC = 0.00f;
+
+            auto hitPos = a_attacker->GetPosition();
+            auto heading = a_char->GetHeadingAngle(hitPos, false);
+            auto stagDir = (heading >= 0.0f) ? heading / 360.0f : (360.0f + heading) / 360.0f;
+            if (a_char->GetHandle() == a_attacker->GetHandle()) { stagDir = 0.0f; } // 0 when self-hit
+
+            auto a = a_char->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant);
+            a->Cast(ptr->poiseDelaySpell, false, a_char, 1.0f, false, 0.0f, 0);
+
+            float maxPoise = Loki_PoiseMod::CalculateMaxPoise(a_char);
+            auto prcnt25 = maxPoise * 0.25f;
+            auto prcnt35 = maxPoise * 0.35f;
+            auto prcnt50 = maxPoise * 0.50f;
+            bool isBlk = false;
+            a_char->GetGraphVariableBool(ptr->isBlocking, isBlk);
             a_char->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
-            if (a_char->HasKeyword(ptr->kCreature) || a_char->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
-                a_char->SetGraphVariableFloat(ptr->staggerMagn, 0.75f);
-                a_char->NotifyAnimationGraph(ptr->ae_Stagger);
-            } else {
-                if (hitData->flags == RE::HitData::Flag::kExplosion) {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseLargeFwd;
-                    } else {
-                        str = ptr->poiseLargeBwd;
-                    }
-                    a_char->NotifyAnimationGraph(str);
+            static RE::BSFixedString str = NULL;
+            if ((float)a_char->pad0EC <= 0.00f) {
+                a_char->pad0EC = maxPoise; // remember earlier when we calculated max poise health?
+                if (a_char->HasKeyword(ptr->kCreature) || a_char->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
+                    a_char->SetGraphVariableFloat(ptr->staggerMagn, 1.00f);
+                    a_char->NotifyAnimationGraph(ptr->ae_Stagger);          // play animation
                 } else {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseMedFwd;
+                    if (hitData->flags == RE::HitData::Flag::kExplosion) {
+                        if (stagDir > 0.25f && stagDir < 0.75f) {
+                            str = ptr->poiseLargestFwd;
+                        } else {
+                            str = ptr->poiseLargestBwd;
+                        }
+                        a_char->NotifyAnimationGraph(str);         // if those, play tier 4
                     } else {
-                        str = ptr->poiseMedBwd;
+                        if (stagDir > 0.25f && stagDir < 0.75f) {
+                            str = ptr->poiseMedFwd;
+                        } else {
+                            str = ptr->poiseMedBwd;
+                        }
+                        a_char->NotifyAnimationGraph(str);  // if not those, play tier 2
                     }
-                    isBlk ? hitData->pushBack = 7.5f : a_char->NotifyAnimationGraph(str);
                 }
             }
-        } else if ((float)a_char->pad0EC < prcnt35 || (float)a_char->pad0EC < 5.00f) {
-            a_char->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
-            if (a_char->HasKeyword(ptr->kCreature) || a_char->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
-                a_char->SetGraphVariableFloat(ptr->staggerMagn, 0.50f);
-                a_char->NotifyAnimationGraph(ptr->ae_Stagger);
-            } else {
-                if (hitData->flags == RE::HitData::Flag::kExplosion) {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseLargeFwd;
+            else if ((float)a_char->pad0EC < prcnt25 || (float)a_char->pad0EC < 2.00f) {
+                if (a_char->HasKeyword(ptr->kCreature) || a_char->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
+                    a_char->SetGraphVariableFloat(ptr->staggerMagn, 0.75f);
+                    a_char->NotifyAnimationGraph(ptr->ae_Stagger);
+                } else {
+                    if (hitData->flags == RE::HitData::Flag::kExplosion) {
+                        if (stagDir > 0.25f && stagDir < 0.75f) {
+                            str = ptr->poiseLargeFwd;
+                        } else {
+                            str = ptr->poiseLargeBwd;
+                        }
+                        a_char->NotifyAnimationGraph(str);
                     } else {
-                        str = ptr->poiseLargeBwd;
+                        if (stagDir > 0.25f && stagDir < 0.75f) {
+                            str = ptr->poiseMedFwd;
+                        } else {
+                            str = ptr->poiseMedBwd;
+                        }
+                        isBlk ? hitData->pushBack = 7.5f : a_char->NotifyAnimationGraph(str);
                     }
-                    a_char->NotifyAnimationGraph(str);
+                }
+            }
+            else if ((float)a_char->pad0EC < prcnt35 || (float)a_char->pad0EC < 5.00f) {
+                if (a_char->HasKeyword(ptr->kCreature) || a_char->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
+                    a_char->SetGraphVariableFloat(ptr->staggerMagn, 0.50f);
+                    a_char->NotifyAnimationGraph(ptr->ae_Stagger);
+                } else {
+                    if (hitData->flags == RE::HitData::Flag::kExplosion) {
+                        if (stagDir > 0.25f && stagDir < 0.75f) {
+                            str = ptr->poiseLargeFwd;
+                        } else {
+                            str = ptr->poiseLargeBwd;
+                        }
+                        a_char->NotifyAnimationGraph(str);
+                    } else {
+                        if (stagDir > 0.25f && stagDir < 0.75f) {
+                            str = ptr->poiseSmallFwd;
+                        } else {
+                            str = ptr->poiseSmallBwd;
+                        }
+                        isBlk ? hitData->pushBack = 5.0f : a_char->NotifyAnimationGraph(str);
+                    }
+                }
+            }
+            else if ((float)a_char->pad0EC < prcnt50 || (float)a_char->pad0EC < 10.00f) {
+                if (a_char->HasKeyword(ptr->kCreature) || a_char->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
+                    a_char->SetGraphVariableFloat(ptr->staggerMagn, 0.25f);
+                    a_char->NotifyAnimationGraph(ptr->ae_Stagger);
                 } else {
                     if (stagDir > 0.25f && stagDir < 0.75f) {
                         str = ptr->poiseSmallFwd;
                     } else {
                         str = ptr->poiseSmallBwd;
                     }
-                    isBlk ? hitData->pushBack = 5.0f : a_char->NotifyAnimationGraph(str);
+                    isBlk ? hitData->pushBack = 2.50f : a_char->NotifyAnimationGraph(str);
                 }
             }
-        } else if ((float)a_char->pad0EC < prcnt50 || (float)a_char->pad0EC < 10.00f) {
-            a_char->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
-            if (a_char->HasKeyword(ptr->kCreature) || a_char->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
-                a_char->SetGraphVariableFloat(ptr->staggerMagn, 0.50f);
-                a_char->NotifyAnimationGraph(ptr->ae_Stagger);
-            } else {
-                if (stagDir > 0.25f && stagDir < 0.75f) {
-                    str = ptr->poiseSmallFwd;
-                } else {
-                    str = ptr->poiseSmallBwd;
-                }
-                isBlk ? hitData->pushBack = 2.50f : a_char->NotifyAnimationGraph(str);
-            }
-        };
+        }
     };
 
     logger::info("HealthDamage_Character executed");
@@ -684,113 +595,138 @@ void Loki_PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Acto
 void Loki_PoiseMod::HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_playerChar, RE::Actor* a_attacker, float a_damage) {
 
     auto ptr = Loki_PoiseMod::GetSingleton();
-    auto hitData = a_attacker->currentProcess->middleHigh->lastHitData;
-    if (hitData->attackData->data.attackSpell) {
-        auto avHealth = a_playerChar->GetActorValue(RE::ActorValue::kHealth);
-        auto avParalysis = a_playerChar->GetActorValue(RE::ActorValue::kParalysis);
-        if (avHealth <= 0.05f || a_playerChar->IsInKillMove() || avParalysis || !ptr->PoiseSystemEnabled) { return _HandleHealthDamage_PlayerCharacter(a_playerChar, a_attacker, a_damage); }
+    auto avHealth = a_playerChar->GetActorValue(RE::ActorValue::kHealth);
+    auto avParalysis = a_playerChar->GetActorValue(RE::ActorValue::kParalysis);
+    if (!a_playerChar || !a_attacker || avHealth <= 0.05f || a_playerChar->IsInKillMove() || avParalysis || !ptr->PoiseSystemEnabled) { return _HandleHealthDamage_PlayerCharacter(a_playerChar, a_attacker, a_damage); }
 
-        if (hitData->healthDamage <= 0.00f) hitData->healthDamage = 0.00f;
-        a_playerChar->pad0EC -= (int)hitData->healthDamage; // there was some bullshit with integer underflow
-        if (a_playerChar->pad0EC > 100000) a_playerChar->pad0EC = 0.00f; // this fixed it...
+    using spellType = RE::MagicSystem::SpellType;
 
-        auto hitPos = a_attacker->GetPosition();
-        auto heading = a_playerChar->GetHeadingAngle(hitPos, false);
-        auto stagDir = (heading >= 0.0f) ? heading / 360.0f : (360.0f + heading) / 360.0f;
-        if (a_playerChar->GetHandle() == a_attacker->GetHandle()) { stagDir = 0.0f; } // 0 when self-hit
-
-        auto a = a_playerChar->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant);
-        a->Cast(ptr->poiseDelaySpell, false, a_playerChar, 1.0f, false, 0.0f, 0);
-
-        float maxPoise = Loki_PoiseMod::CalculateMaxPoise(a_playerChar);
-        auto prcnt25 = maxPoise * 0.25f;
-        auto prcnt35 = maxPoise * 0.35f;
-        auto prcnt50 = maxPoise * 0.50f;
-
-        bool isBlk = false;
-        static RE::BSFixedString str = NULL;
-        a_playerChar->GetGraphVariableBool(ptr->isBlocking, isBlk);
-        if ((float)a_playerChar->pad0EC <= 0.00f) {
-            a_playerChar->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
-            a_playerChar->pad0EC = maxPoise; // remember earlier when we calculated max poise health?
-            if (a_playerChar->HasKeyword(ptr->kCreature) || a_playerChar->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
-                a_playerChar->SetGraphVariableFloat(ptr->staggerMagn, 1.00f);
-                a_playerChar->NotifyAnimationGraph(ptr->ae_Stagger);          // play animation
-            } else {
-                if (hitData->flags == RE::HitData::Flag::kExplosion) {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseLargestFwd;
-                    } else {
-                        str = ptr->poiseLargestBwd;
+    float a_result = 0.00f;
+    auto hitData = [a_attacker]() -> RE::HitData* {
+        auto process = a_attacker->currentProcess;
+        if (!process) { return nullptr; };
+        auto middleHigh = process->middleHigh;
+        if (!middleHigh) { return nullptr; };
+        auto lastHitData = middleHigh->lastHitData;
+        return lastHitData ? lastHitData : nullptr;
+    }();
+    if (!hitData) {
+        a_result = 0.00f;
+    } else {
+        auto spellItem = [hitData]() -> RE::SpellItem* {
+            auto attackData = hitData->attackData;
+            if (!attackData) { return nullptr; };
+            auto attackSpell = attackData->data.attackSpell;
+            return attackSpell ? attackSpell : nullptr;
+        }();
+        if (!spellItem) {
+            a_result = 0.00f;
+        } else {
+            if (spellItem->data.spellType == spellType::kSpell) {
+                for (auto idx : spellItem->effects) {
+                    if (idx) {
+                        a_result += idx->cost;
                     }
-                    a_playerChar->NotifyAnimationGraph(str);         // if those, play tier 4
-                } else {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseMedFwd;
-                    } else {
-                        str = ptr->poiseMedBwd;
-                    }
-                    a_playerChar->NotifyAnimationGraph(str);  // if not those, play tier 2
                 }
-            }
-        } else if ((float)a_playerChar->pad0EC < prcnt25 || (float)a_playerChar->pad0EC < 2.00f) {
+            } else { a_result = 0.00f; }
+
+            a_playerChar->pad0EC -= (int)a_result;
+            if (a_playerChar->pad0EC > 100000) a_playerChar->pad0EC = 0.00f;
+
+            auto hitPos = a_attacker->GetPosition();
+            auto heading = a_playerChar->GetHeadingAngle(hitPos, false);
+            auto stagDir = (heading >= 0.0f) ? heading / 360.0f : (360.0f + heading) / 360.0f;
+            if (a_playerChar->GetHandle() == a_attacker->GetHandle()) { stagDir = 0.0f; } // 0 when self-hit
+
+            auto a = a_playerChar->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant);
+            a->Cast(ptr->poiseDelaySpell, false, a_playerChar, 1.0f, false, 0.0f, 0);
+
+            float maxPoise = Loki_PoiseMod::CalculateMaxPoise(a_playerChar);
+            auto prcnt25 = maxPoise * 0.25f;
+            auto prcnt35 = maxPoise * 0.35f;
+            auto prcnt50 = maxPoise * 0.50f;
+            bool isBlk = false;
+            a_playerChar->GetGraphVariableBool(ptr->isBlocking, isBlk);
             a_playerChar->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
-            if (a_playerChar->HasKeyword(ptr->kCreature) || a_playerChar->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
-                a_playerChar->SetGraphVariableFloat(ptr->staggerMagn, 0.75f);
-                a_playerChar->NotifyAnimationGraph(ptr->ae_Stagger);
-            } else {
-                if (hitData->flags == RE::HitData::Flag::kExplosion) {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseLargeFwd;
-                    } else {
-                        str = ptr->poiseLargeBwd;
-                    }
-                    a_playerChar->NotifyAnimationGraph(str);
+            static RE::BSFixedString str = NULL;
+            if ((float)a_playerChar->pad0EC <= 0.00f) {
+                a_playerChar->pad0EC = maxPoise; // remember earlier when we calculated max poise health?
+                if (a_playerChar->HasKeyword(ptr->kCreature) || a_playerChar->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
+                    a_playerChar->SetGraphVariableFloat(ptr->staggerMagn, 1.00f);
+                    a_playerChar->NotifyAnimationGraph(ptr->ae_Stagger);          // play animation
                 } else {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseMedFwd;
+                    if (hitData->flags == RE::HitData::Flag::kExplosion) {
+                        if (stagDir > 0.25f && stagDir < 0.75f) {
+                            str = ptr->poiseLargestFwd;
+                        } else {
+                            str = ptr->poiseLargestBwd;
+                        }
+                        a_playerChar->NotifyAnimationGraph(str);         // if those, play tier 4
                     } else {
-                        str = ptr->poiseMedBwd;
+                        if (stagDir > 0.25f && stagDir < 0.75f) {
+                            str = ptr->poiseMedFwd;
+                        } else {
+                            str = ptr->poiseMedBwd;
+                        }
+                        a_playerChar->NotifyAnimationGraph(str);  // if not those, play tier 2
                     }
-                    isBlk ? hitData->pushBack = 7.5f : a_playerChar->NotifyAnimationGraph(str);
                 }
-            }
-        } else if ((float)a_playerChar->pad0EC < prcnt35 || (float)a_playerChar->pad0EC < 5.00f) {
-            a_playerChar->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
-            if (a_playerChar->HasKeyword(ptr->kCreature) || a_playerChar->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
-                a_playerChar->SetGraphVariableFloat(ptr->staggerMagn, 0.50f);
-                a_playerChar->NotifyAnimationGraph(ptr->ae_Stagger);
-            } else {
-                if (hitData->flags == RE::HitData::Flag::kExplosion) {
-                    if (stagDir > 0.25f && stagDir < 0.75f) {
-                        str = ptr->poiseLargeFwd;
+            } else if ((float)a_playerChar->pad0EC < prcnt25 || (float)a_playerChar->pad0EC < 2.00f) {
+                if (a_playerChar->HasKeyword(ptr->kCreature) || a_playerChar->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
+                    a_playerChar->SetGraphVariableFloat(ptr->staggerMagn, 0.75f);
+                    a_playerChar->NotifyAnimationGraph(ptr->ae_Stagger);
+                } else {
+                    if (hitData->flags == RE::HitData::Flag::kExplosion) {
+                        if (stagDir > 0.25f && stagDir < 0.75f) {
+                            str = ptr->poiseLargeFwd;
+                        } else {
+                            str = ptr->poiseLargeBwd;
+                        }
+                        a_playerChar->NotifyAnimationGraph(str);
                     } else {
-                        str = ptr->poiseLargeBwd;
+                        if (stagDir > 0.25f && stagDir < 0.75f) {
+                            str = ptr->poiseMedFwd;
+                        } else {
+                            str = ptr->poiseMedBwd;
+                        }
+                        isBlk ? hitData->pushBack = 7.5f : a_playerChar->NotifyAnimationGraph(str);
                     }
-                    a_playerChar->NotifyAnimationGraph(str);
+                }
+            } else if ((float)a_playerChar->pad0EC < prcnt35 || (float)a_playerChar->pad0EC < 5.00f) {
+                if (a_playerChar->HasKeyword(ptr->kCreature) || a_playerChar->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
+                    a_playerChar->SetGraphVariableFloat(ptr->staggerMagn, 0.50f);
+                    a_playerChar->NotifyAnimationGraph(ptr->ae_Stagger);
+                } else {
+                    if (hitData->flags == RE::HitData::Flag::kExplosion) {
+                        if (stagDir > 0.25f && stagDir < 0.75f) {
+                            str = ptr->poiseLargeFwd;
+                        } else {
+                            str = ptr->poiseLargeBwd;
+                        }
+                        a_playerChar->NotifyAnimationGraph(str);
+                    } else {
+                        if (stagDir > 0.25f && stagDir < 0.75f) {
+                            str = ptr->poiseSmallFwd;
+                        } else {
+                            str = ptr->poiseSmallBwd;
+                        }
+                        isBlk ? hitData->pushBack = 5.0f : a_playerChar->NotifyAnimationGraph(str);
+                    }
+                }
+            } else if ((float)a_playerChar->pad0EC < prcnt50 || (float)a_playerChar->pad0EC < 10.00f) {
+                if (a_playerChar->HasKeyword(ptr->kCreature) || a_playerChar->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
+                    a_playerChar->SetGraphVariableFloat(ptr->staggerMagn, 0.25f);
+                    a_playerChar->NotifyAnimationGraph(ptr->ae_Stagger);
                 } else {
                     if (stagDir > 0.25f && stagDir < 0.75f) {
                         str = ptr->poiseSmallFwd;
                     } else {
                         str = ptr->poiseSmallBwd;
                     }
-                    isBlk ? hitData->pushBack = 5.0f : a_playerChar->NotifyAnimationGraph(str);
+                    isBlk ? hitData->pushBack = 2.50f : a_playerChar->NotifyAnimationGraph(str);
                 }
             }
-        } else if ((float)a_playerChar->pad0EC < prcnt50 || (float)a_playerChar->pad0EC < 10.00f) {
-            a_playerChar->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
-            if (a_playerChar->HasKeyword(ptr->kCreature) || a_playerChar->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
-                a_playerChar->SetGraphVariableFloat(ptr->staggerMagn, 0.50f);
-                a_playerChar->NotifyAnimationGraph(ptr->ae_Stagger);
-            } else {
-                if (stagDir > 0.25f && stagDir < 0.75f) {
-                    str = ptr->poiseSmallFwd;
-                } else {
-                    str = ptr->poiseSmallBwd;
-                }
-                isBlk ? hitData->pushBack = 2.50f : a_playerChar->NotifyAnimationGraph(str);
-            }
-        };
+        }
     };
 
     logger::info("HealthDamage_PlayerCharacter executed");
