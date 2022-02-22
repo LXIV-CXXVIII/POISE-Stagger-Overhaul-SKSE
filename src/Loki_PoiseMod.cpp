@@ -161,8 +161,8 @@ void Loki_PoiseMod::InstallIsActorKnockdownHook() {
 }
 
 void Loki_PoiseMod::InstallVFuncHooks() {
-    REL::Relocation<std::uintptr_t> ActorVtbl{ RE::Offset::Actor::Vtbl };
-    _HandleHealthDamage_Actor = ActorVtbl.write_vfunc(0x104, HandleHealthDamage_Actor);
+    //REL::Relocation<std::uintptr_t> ActorVtbl{ RE::Offset::Actor::Vtbl };
+    //_HandleHealthDamage_Actor = ActorVtbl.write_vfunc(0x104, HandleHealthDamage_Actor);
 
     REL::Relocation<std::uintptr_t> CharacterVtbl{ REL::ID(261397) };  // 165DA40
     _HandleHealthDamage_Character = CharacterVtbl.write_vfunc(0x104, HandleHealthDamage_Character);
