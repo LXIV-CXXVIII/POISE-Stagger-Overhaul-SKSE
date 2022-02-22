@@ -3,6 +3,10 @@
 #include "Loki_PoiseMod.h"
 #include "Loki_PluginTools.h"
 
+/* a work in progress thing for storing Poise Health and Poise Damage multipliers
+   for races, in a concise and easy manner, iterating through .ini strings to find
+   .esp name, Form ID, poise HP mul, and poise dmg Mul.
+*/
 void Loki_PoiseMod::ReadPoiseIni(const wchar_t* a_filename, std::unordered_map<RE::BGSKeyword*, float*> a_map) {
 
     CSimpleIniA ini;
@@ -58,6 +62,9 @@ void Loki_PoiseMod::ReadPoiseIni(const wchar_t* a_filename, std::unordered_map<R
 
 }
 
+/* the main class for the mod. Contains Poise ctor, GetSingleton, all hooks,
+   all hooks, Calc. Max Poise and Calc. Poise damage, etc. Everything essential to the mod.
+*/
 Loki_PoiseMod::Loki_PoiseMod() {
 
     //Loki_PoiseMod::ReadPoiseIni(L"Data/SKSE/Plugins/loki_POISE/loki_POISE_RaceHealthSettings.ini", this->healthKywdMap);
@@ -130,6 +137,9 @@ Loki_PoiseMod::Loki_PoiseMod() {
 
 }
 
+/* returns the singleton for the PoiseMod class. 
+   Use this instead of create a new instance.
+*/
 Loki_PoiseMod* Loki_PoiseMod::GetSingleton() {
     static Loki_PoiseMod* singleton = new Loki_PoiseMod();
     return singleton;
@@ -168,6 +178,10 @@ void Loki_PoiseMod::InstallVFuncHooks() {
     _HandleHealthDamage_PlayerCharacter = PlayerCharacterVtbl.write_vfunc(0x104, HandleHealthDamage_PlayerCharacter);
 }
 
+/*
+    a_result = (creature->GetWeight() x creatureMul) x blockedMul;
+    a_result = ((weaponWeight x weaponTypeMul x effectMul) x blockedMul) x hyperArmrMul
+*/
 float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_actor) {
 
     // this whole function is BAD and DIRTY but i cant think of any other way at the moment
@@ -344,6 +358,10 @@ float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_a
     return a_result;
 
 }
+
+/* a_result = (creatureWeight x creatureMul) x effectMul;
+   a_result = (equippedWeight + (heavyArmourskill x 0.20)) x effectMul;
+*/
 float Loki_PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
 
     auto ptr = Loki_PoiseMod::GetSingleton();
@@ -389,6 +407,10 @@ float Loki_PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
 
 }
 
+/* Removes ragdolling in favour of animated knockdown.
+   Appropriate direction and NPCs both work, tho NPCs is not
+   recommended to be used.
+*/
 bool Loki_PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk) {
 
     auto ptr = Loki_PoiseMod::GetSingleton();
@@ -427,6 +449,11 @@ bool Loki_PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk) 
 
 }
 
+/* Used for assigning poise values to Player and NPCs.
+   Hooks GetSubmergedLevel() but doesn't do anything with the function itself.
+   Return value is preserved and unmodified.
+   This is a cheap way of ensuring this runs for every actor.
+*/
 float Loki_PoiseMod::GetSubmergedLevel(RE::Actor* a_actor, float a_zPos, RE::TESObjectCELL* a_cell) {
 
     auto ptr = Loki_PoiseMod::GetSingleton();
@@ -444,6 +471,9 @@ float Loki_PoiseMod::GetSubmergedLevel(RE::Actor* a_actor, float a_zPos, RE::TES
 
 }
 
+/* basically if it's not a spell then we don't need to do anything at all
+   and just run the original function as if nothing ever happened.
+*/
 void Loki_PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Actor* a_attacker, float a_damage) {
 
     auto ptr = Loki_PoiseMod::GetSingleton();
@@ -592,6 +622,9 @@ void Loki_PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Acto
 
 }
 
+/* basically if it's not a spell then we don't need to do anything at all
+   and just run the original function as if nothing ever happened.
+*/
 void Loki_PoiseMod::HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_playerChar, RE::Actor* a_attacker, float a_damage) {
 
     auto ptr = Loki_PoiseMod::GetSingleton();
@@ -734,6 +767,10 @@ void Loki_PoiseMod::HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_pl
 
 }
 
+/* The main function of Poise, subtracting poise damage from health and triggering animations.
+   Creatures end up using normal stagger behaviours, but anything else uses the new 
+   poise behaviours and animations. 
+*/
 void Loki_PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData) {
 
     RE::FormID kLurker = 0x14495;

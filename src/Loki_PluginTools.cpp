@@ -1,5 +1,8 @@
 #include "Loki_PluginTools.h"
 
+/* 
+   needed because *i* fucked up my Xbyak stuff
+*/
 void* Loki_PluginTools::CodeAllocation(Xbyak::CodeGenerator& a_code, SKSE::Trampoline* t_ptr) {
 
     auto result = t_ptr->allocate(a_code.getSize());
@@ -8,12 +11,18 @@ void* Loki_PluginTools::CodeAllocation(Xbyak::CodeGenerator& a_code, SKSE::Tramp
 
 }
 
+/*
+    leftover from Paraglider, kept it just in case
+*/
 float Loki_PluginTools::lerp(float a, float b, float f) {
 
     return a + f * (b - a);
 
 }
 
+/*
+    Experimenting with keywords
+*/
 bool Loki_PluginTools::WeaponHasKeyword(RE::TESObjectWEAP* a_weap, RE::BSFixedString a_editorID) {
 
     if (a_weap->keywords) {
@@ -28,6 +37,9 @@ bool Loki_PluginTools::WeaponHasKeyword(RE::TESObjectWEAP* a_weap, RE::BSFixedSt
 
 }
 
+/*
+    Experimenting with keywords
+*/
 RE::Effect* Loki_PluginTools::ActorHasEffectWithKeyword(RE::Actor* a_actor, RE::BSFixedString a_editorID) {
 
     auto activeEffect = a_actor->GetActiveEffectList();
