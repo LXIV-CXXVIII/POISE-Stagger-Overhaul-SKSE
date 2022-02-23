@@ -7,59 +7,50 @@
    for races, in a concise and easy manner, iterating through .ini strings to find
    .esp name, Form ID, poise HP mul, and poise dmg Mul.
 */
-void Loki_PoiseMod::ReadPoiseIni(const wchar_t* a_filename, std::unordered_map<RE::BGSKeyword*, float*> a_map) {
+void Loki_PoiseMod::ReadPoiseIni(const wchar_t* a_filename, std::unordered_map<RE::TESRace*, float*> a_map) {
 
     CSimpleIniA ini;
     ini.SetUnicode();
     auto filename = a_filename;
     SI_Error rc = ini.LoadFile(filename);
-    //ini.setmul
 
+    std::string colon = ":";
+    std::string comma = ",";
     std::list<CSimpleIniA::Entry> keyList = {};
-    std::list<CSimpleIniA::Entry> valueList = {};
     ini.GetAllKeys("FORM_IDS", keyList);
-    for (auto idx : keyList) { // for every entry in keyList do
+    for (auto idx : keyList) {
         logger::info("For every entry in keylist");
         RE::FormID formID = NULL;
-        RE::BSFixedString espName = NULL;
-        std::string item = idx.pItem; // get key string
-        std::string colon = ":";      // prep for comp
-        for (int i = 0; i < 64; i++) {  // iterate through string
-            logger::info("interate through key");
-            if (item[i] == colon[0]) {   // if ini string == : then do
+        std::string_view espName = NULL;
+        std::string item = idx.pItem;
+        for (int i = 0; i < 64; i++) {
+            logger::info("iterate through key");
+            if (item[i] == colon[0]) {
                 logger::info("found what we need");
-                item[i] = 0;             // split esp and formID
-                espName = (RE::BSFixedString)(const char*)item[0]; // found the esp name
-                auto cFormID = std::stoi((const char*)item[i + 1]); // convert string form ID to Int
-                formID = (RE::FormID)cFormID;  // found the formID 
+                item[i] = 0;
+                espName = (const char*)item[0];
+                formID = (RE::FormID)std::stoi((const char*)item[i + 1]);
                 auto dataHandle = RE::TESDataHandler::GetSingleton();
-                auto kywd = dataHandle->LookupForm<RE::BGSKeyword>(formID, espName); // get the keyword ptr
-                //ini.GetAllValues("FORM_IDS", idx.pItem, valueList);
-                //a_map.insert_or_assign(kywd ? kywd : nullptr, (float*)valueList.begin()->pItem);  // assign keyword and ini settings to map
-                bool* f = {};
-                std::string value = (std::string)ini.GetValue("FORM_IDS", idx.pItem, "null", f); // get value string
-                float* mapStruct = {}; // allocate float pointer
-                std::string comma = ","; // prep for comp
-                for (int i = 0; i < 64; i++) { // iterate through string
-                    logger::info("iterate through value");
-                    if (value[i] == comma[0]) { // if value string == , then do
-                        logger::info("found what we need");
-                        value[i] = 0;           // split values
-                        mapStruct[0] = std::stof((std::string)(const char*)value[0]); // convert string to float and assign to float pointer
-                        mapStruct[1] = std::stof((std::string)(const char*)value[i + 1]); // same as above but for the 2nd value
-                        logger::info("break out of value assignment");
-                        break;  // break out of string comp
+                auto race = dataHandle->LookupForm<RE::TESRace>(formID, espName);
+                bool* b = {};
+                std::string value = (std::string)ini.GetValue("FORM_IDS", idx.pItem, "null", b);
+                float* varStruct = {};
+                for (int i = 0; i < 64; i++) {
+                    if (value[i] == comma[0]) {
+                        logger::info("Found what we need");
+                        value[i] = 0;
+                        varStruct[0] = std::stof((std::string)(const char*)value[0]);
+                        varStruct[1] = std::stof((std::string)(const char*)value[i + 1]);
+                        logger::info("Value assignment finished");
+                        break;
                     }
                 }
-                a_map.insert_or_assign(kywd ? kywd : nullptr, mapStruct); // assign keyword and ini settings to map
-                logger::info("assign struct to map");
-                //a_map.insert_or_assign(kywd ? kywd : nullptr, (float)ini.GetAllValues("FORM_IDS", idx.pItem, valueList));
-                //a_map.insert_or_assign(kywd ? kywd : nullptr, (float)ini.GetDoubleValue("FORM_IDS", idx.pItem, -1.00f)); // assign keyword and ini setting to map
+                a_map.insert_or_assign(race ? race : nullptr, varStruct);
+                logger::info("Assigning structure to race map");
                 break;
             }
         }
     }
-
 }
 
 /* the main class for the mod. Contains Poise ctor, GetSingleton, all hooks,
@@ -69,6 +60,8 @@ Loki_PoiseMod::Loki_PoiseMod() {
 
     //Loki_PoiseMod::ReadPoiseIni(L"Data/SKSE/Plugins/loki_POISE/loki_POISE_RaceHealthSettings.ini", this->healthKywdMap);
         //Loki_PoiseMod::ReadPoiseIni(L"Data/SKSE/Plugins/loki_POISE/loki_POISE_RaceDamageSettings.ini", this->damageKywdMap);
+
+    Loki_PoiseMod::ReadPoiseIni(L"Data/SKSE/Plugins/loki_POISE/loki_POISE_RaceSettings.ini", this->poiseRaceMap);
 
     CSimpleIniA ini;
     ini.SetUnicode();
@@ -432,6 +425,8 @@ bool Loki_PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk) 
             else {
                 str = ptr->poiseLargestBwd;
             }
+            Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
+                FlashActorSpecialBar(SKSE::GetPluginHandle(), a_this->GetHandle(), true);
             a_this->NotifyAnimationGraph(str);
             return false;
         }
@@ -446,6 +441,8 @@ bool Loki_PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk) 
             else {
                 str = ptr->poiseLargestBwd;
             }
+            Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
+                FlashActorSpecialBar(SKSE::GetPluginHandle(), a_this->GetHandle(), true);
             a_this->NotifyAnimationGraph(str);
             return false;
         }
@@ -540,6 +537,8 @@ void Loki_PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Acto
             a_char->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
             static RE::BSFixedString str = NULL;
             if ((float)a_char->pad0EC <= 0.00f) {
+                Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
+                    FlashActorSpecialBar(SKSE::GetPluginHandle(), a_char->GetHandle(), false);
                 a_char->pad0EC = maxPoise; // remember earlier when we calculated max poise health?
                 if (a_char->HasKeyword(ptr->kCreature) || a_char->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
                     a_char->SetGraphVariableFloat(ptr->staggerMagn, 1.00f);
@@ -704,6 +703,8 @@ void Loki_PoiseMod::HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_pl
             a_playerChar->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
             static RE::BSFixedString str = NULL;
             if ((float)a_playerChar->pad0EC <= 0.00f) {
+                Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
+                    FlashActorSpecialBar(SKSE::GetPluginHandle(), a_playerChar->GetHandle(), false);
                 a_playerChar->pad0EC = maxPoise; // remember earlier when we calculated max poise health?
                 if (a_playerChar->HasKeyword(ptr->kCreature) || a_playerChar->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
                     a_playerChar->SetGraphVariableFloat(ptr->staggerMagn, 1.00f);
@@ -858,7 +859,8 @@ void Loki_PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData) 
     if ((float)a_actor->pad0EC <= 0.00f) {
         a_actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
         a_actor->pad0EC = maxPoise; // remember earlier when we calculated max poise health?
-        //Loki_TrueHUDControl::GetSingleton()->g_trueHUD->FlashActorSpecialBar(SKSE::GetPluginHandle(), a_actor->GetHandle(), false);
+        Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
+            FlashActorSpecialBar(SKSE::GetPluginHandle(), a_actor->GetHandle(), false);
         if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
             a_actor->SetGraphVariableFloat(ptr->staggerMagn, 1.00f);
             a_actor->NotifyAnimationGraph(ptr->ae_Stagger);          // play animation

@@ -1,4 +1,5 @@
 #pragma once
+#include "Loki_TrueHUDControl.h"
 
 class Loki_PoiseMod {
 
@@ -48,8 +49,9 @@ public:
 
     std::unordered_map<RE::BGSKeyword*, float*> healthKywdMap = {};
     std::unordered_map<RE::BGSKeyword*, float*> damageKywdMap = {};
+    std::unordered_map<RE::TESRace*, float*> poiseRaceMap;
 
-    static void ReadPoiseIni(const wchar_t* a_filename, std::unordered_map<RE::BGSKeyword*, float*> a_map);
+    static void ReadPoiseIni(const wchar_t* a_filename, std::unordered_map<RE::TESRace*, float*> a_map);
     Loki_PoiseMod();
     static Loki_PoiseMod* GetSingleton();
 
