@@ -1,4 +1,5 @@
 #include "C:/dev/simpleini-master/SimpleIni.h"
+#include <toml++/toml.h>
 
 #include "Loki_PoiseMod.h"
 #include "Loki_PluginTools.h"
@@ -53,15 +54,81 @@ void Loki_PoiseMod::ReadPoiseIni(const wchar_t* a_filename, std::unordered_map<R
     }
 }
 
+void Loki_PoiseMod::ReadPoiseTOML(std::unordered_map<RE::TESRace*, float*> a_map) {
+
+    constexpr auto path = L"Data/SKSE/Plugins/loki_POISE";
+    constexpr auto ext = L".toml";
+    constexpr auto basecfg = L"Data/SKSE/Plugins/loki_POISE/loki_POISE_RaceSettings.toml";
+
+    auto dataHandle = RE::TESDataHandler::GetSingleton();
+
+    const auto readToml = [&a_map, dataHandle](std::filesystem::path path) {
+        logger::info("Reading {}...", path.string());
+        try {
+
+            const auto tbl = toml::parse_file(path.c_str());
+            auto& arr = *tbl.get_as<toml::array>("race");
+            for (auto&& elem : arr) {
+                auto& raceTable = *elem.as_table();
+
+                auto formID = raceTable["FormID"].value<RE::FormID>();
+                auto plugin = raceTable["Plugin"].value<std::string_view>();
+                auto race = dataHandle->LookupForm<RE::TESRace>(*formID, *plugin);
+
+                auto poiseMults = raceTable["PoiseMults"].as_array();
+                if (poiseMults) {
+                    float* varStruct = {};
+                    for (int idx = 0; idx <= 1; idx++) {
+                        auto result = (float)**poiseMults->get_as<double>(idx);
+                        varStruct[idx] = result;
+                    }
+                    a_map.insert_or_assign(race ? race : nullptr, varStruct);
+                }
+            }
+
+        } catch (const toml::parse_error& e) {
+            std::ostringstream ss;
+            ss << "Error parsing file \'" << *e.source().path << "\':\n"
+                << '\t' << e.description() << '\n'
+                << "\t\t(" << e.source().begin << ')';
+            logger::error(ss.str());
+        } catch (const std::exception& e) {
+            logger::error("{}", e.what());
+        } catch (...) {
+            logger::error("Unknown failute"sv);
+        }
+    };
+
+    logger::info("Reading .toml files");
+
+    auto baseToml = std::filesystem::path(basecfg);
+    readToml(baseToml);
+    if (std::filesystem::is_directory(path)) {
+        for (const auto& file : std::filesystem::directory_iterator(path)) {
+            if (std::filesystem::is_regular_file(file) && file.path().extension() == ext) {
+                auto filePath = file.path();
+                if (filePath != basecfg) {
+                    readToml(filePath);
+                }
+            }
+        }
+    }
+
+    logger::info("Success");
+
+}
+
 /* the main class for the mod. Contains Poise ctor, GetSingleton, all hooks,
-   all hooks, Calc. Max Poise and Calc. Poise damage, etc. Everything essential to the mod.
+   Calc. Max Poise and Calc. Poise damage, etc. Everything essential to the mod.
 */
 Loki_PoiseMod::Loki_PoiseMod() {
 
     //Loki_PoiseMod::ReadPoiseIni(L"Data/SKSE/Plugins/loki_POISE/loki_POISE_RaceHealthSettings.ini", this->healthKywdMap);
         //Loki_PoiseMod::ReadPoiseIni(L"Data/SKSE/Plugins/loki_POISE/loki_POISE_RaceDamageSettings.ini", this->damageKywdMap);
 
-    Loki_PoiseMod::ReadPoiseIni(L"Data/SKSE/Plugins/loki_POISE/loki_POISE_RaceSettings.ini", this->poiseRaceMap);
+    //Loki_PoiseMod::ReadPoiseIni(L"Data/SKSE/Plugins/loki_POISE/loki_POISE_RaceSettings.ini", this->poiseRaceMap);
+
+    //Loki_PoiseMod::ReadPoiseTOML(this->poiseRaceMap);
 
     CSimpleIniA ini;
     ini.SetUnicode();

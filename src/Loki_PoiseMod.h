@@ -52,6 +52,7 @@ public:
     std::unordered_map<RE::TESRace*, float*> poiseRaceMap;
 
     static void ReadPoiseIni(const wchar_t* a_filename, std::unordered_map<RE::TESRace*, float*> a_map);
+    static void ReadPoiseTOML(std::unordered_map<RE::TESRace*, float*> a_map);
     Loki_PoiseMod();
     static Loki_PoiseMod* GetSingleton();
 

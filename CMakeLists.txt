@@ -117,6 +117,8 @@ find_package(spdlog REQUIRED)
 
 find_path(XBYAK_INCLUDE_DIRS "xbyak/xbyak.h")
 
+find_package(tomlplusplus REQUIRED CONFIG)
+
 # ---- Add source files ----
 
 set(headers
@@ -181,6 +183,7 @@ target_link_libraries(${PROJECT_NAME}
 	PUBLIC
 		CommonLibSSE::CommonLibSSE
 		spdlog::spdlog
+		tomlplusplus::tomlplusplus
 )
 
 target_link_options(${PROJECT_NAME}
