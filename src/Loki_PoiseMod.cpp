@@ -185,17 +185,16 @@ float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_a
 
     auto ptr = Loki_PoiseMod::GetSingleton();
 
-    bool bolk;
-    bool atak;
-    a_actor->GetGraphVariableBool("IsBlocking", bolk);
-    a_actor->GetGraphVariableBool("IsAttacking", atak);
+    bool blk, atk;
+    a_actor->GetGraphVariableBool("IsBlocking", blk);
+    a_actor->GetGraphVariableBool("IsAttacking", atk);
     auto aggressor = a_hitData.aggressor.get();
 
     for (auto idx : ptr->poiseRaceMap) {
         if (aggressor && (aggressor->race->formID == idx.first->formID)) {
             auto result = aggressor->GetWeight();
-            if (bolk) { return (result * idx.second[1]) * ptr->BlockedMult; };
-            if (atak) { return (result * idx.second[1]) * ptr->HyperArmourMult; };
+            if (blk) { return (result * idx.second[1]) * ptr->BlockedMult; };
+            if (atk) { return (result * idx.second[1]) * ptr->HyperArmourMult; };
             return (result * idx.second[1]);
         }
     }
@@ -308,9 +307,6 @@ float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_a
         a_result *= ptr->BashMult;
     }
 
-    bool blk, atk;
-    a_actor->GetGraphVariableBool("IsBlocking", blk);
-    a_actor->GetGraphVariableBool("IsAttacking", atk);
     if (blk) {
         a_result *= ptr->BlockedMult;
     }
@@ -468,7 +464,7 @@ void Loki_PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Acto
             a_result = 0.00f;
         }
         else {
-            if (spellItem->data.spellType == spellType::kSpell) {
+            if (spellItem->data.spellType == spellType::kLeveledSpell) {
                 for (auto idx : spellItem->effects) {
                     if (idx) {
                         a_result += idx->cost;
@@ -634,7 +630,7 @@ void Loki_PoiseMod::HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_pl
             a_result = 0.00f;
         } 
         else {
-            if (spellItem->data.spellType == spellType::kSpell) {
+            if (spellItem->data.spellType == spellType::kLeveledSpell) {
                 for (auto idx : spellItem->effects) {
                     if (idx) {
                         a_result += idx->cost;
