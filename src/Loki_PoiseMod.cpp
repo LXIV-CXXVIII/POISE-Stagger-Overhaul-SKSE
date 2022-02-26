@@ -191,12 +191,21 @@ float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_a
     auto aggressor = a_hitData.aggressor.get();
 
     for (auto idx : ptr->poiseRaceMap) {
-        if (aggressor && (aggressor->race->formID == idx.first->formID)) {
-            auto result = aggressor->GetWeight();
-            if (blk) { return (result * idx.second[1]) * ptr->BlockedMult; };
-            if (atk) { return (result * idx.second[1]) * ptr->HyperArmourMult; };
-            return (result * idx.second[1]);
+        auto a_actorRace = aggressor->race;
+        if (aggressor && a_actorRace && idx.first) {
+            if (a_actorRace->formID == idx.first->formID) {
+                auto result = aggressor->GetWeight();
+                if (blk) { return (result * idx.second[1]) * ptr->BlockedMult; };
+                if (atk) { return (result * idx.second[1]) * ptr->HyperArmourMult; };
+                return (result * idx.second[1]);
+            }
         }
+        //if (aggressor && (aggressor->race->formID == idx.first->formID)) {
+        //    auto result = aggressor->GetWeight();
+        //    if (blk) { return (result * idx.second[1]) * ptr->BlockedMult; };
+        //    if (atk) { return (result * idx.second[1]) * ptr->HyperArmourMult; };
+        //    return (result * idx.second[1]);
+        //}
     }
 
     auto weap = a_hitData.weapon;
@@ -331,9 +340,15 @@ float Loki_PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
     float a_result = (a_actor->equippedWeight + (a_actor->GetBaseActorValue(RE::ActorValue::kHeavyArmor) * 0.20f));
 
     for (auto idx : ptr->poiseRaceMap) {
-        if (a_actor && (a_actor->race->formID == idx.first->formID)) {
-            a_result = a_actor->GetWeight() * idx.second[0];
+        auto a_actorRace = a_actor->race;
+        if (a_actor && a_actorRace && idx.first) {
+            if (a_actorRace->formID == idx.first->formID) {
+                a_result = a_actor->GetWeight() * idx.second[0];
+            }
         }
+        //if (a_actor && (a_actor->race->formID == idx.first->formID)) {
+        //    a_result = a_actor->GetWeight() * idx.second[0];
+        //}
     }
 
     RE::BSFixedString buffKeyword = "MaxPoiseBuff";
