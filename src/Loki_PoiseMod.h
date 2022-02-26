@@ -1,4 +1,8 @@
 #pragma once
+#include "C:/dev/simpleini-master/SimpleIni.h"
+#include <toml++/toml.h>
+
+#include "Loki_PluginTools.h"
 #include "Loki_TrueHUDControl.h"
 
 class Loki_PoiseMod {
@@ -9,8 +13,6 @@ public:
     float BowMult, CrossbowMult, Hand2Hand, OneHandAxe, OneHandDagger, OneHandMace, OneHandSword, TwoHandAxe, TwoHandSword;
     float RapierMult, PikeMult, SpearMult, HalberdMult, QtrStaffMult, CaestusMult, ClawMult, WhipMult;
     float PowerAttackMult, BlockedMult, BashMult, HyperArmourMult;
-    float CreaturePoiseHealthMult, DragonPoiseHealthMult, DwarvenPoiseHealthMult;
-    float CreaturePoiseDamageMult, DragonPoiseDamageMult, DwarvenPoiseDamageMult;
     bool PoiseSystemEnabled, PlayerRagdollReplacer, NPCRagdollReplacer, PoiseRegenEnabled, TrueHUDBars;
 
     const RE::BSFixedString ae_Stagger = "staggerStart";
@@ -47,12 +49,9 @@ public:
     RE::BGSKeyword* PoiseHPNerf = NULL;
     RE::BGSKeyword* PoiseHPBuff = NULL;
 
-    std::unordered_map<RE::BGSKeyword*, float*> healthKywdMap = {};
-    std::unordered_map<RE::BGSKeyword*, float*> damageKywdMap = {};
-    std::unordered_map<RE::TESRace*, float*> poiseRaceMap;
+    static inline std::unordered_map<RE::TESRace*, std::vector<float>> poiseRaceMap;
 
-    static void ReadPoiseIni(const wchar_t* a_filename, std::unordered_map<RE::TESRace*, float*> a_map);
-    static void ReadPoiseTOML(std::unordered_map<RE::TESRace*, float*> a_map);
+    static void ReadPoiseTOML();
     Loki_PoiseMod();
     static Loki_PoiseMod* GetSingleton();
 

@@ -1,6 +1,4 @@
 #include "Loki_TrueHUDControl.h"
-#include "Loki_PoiseMod.h"
-#include "Loki_PluginTools.h"
 
 Loki_TrueHUDControl::Loki_TrueHUDControl() {
     CSimpleIniA ini;
@@ -19,13 +17,13 @@ Loki_TrueHUDControl* Loki_TrueHUDControl::GetSingleton() {
 float Loki_TrueHUDControl::GetMaxSpecial([[maybe_unused]] RE::Actor* a_actor) {
 
     auto ptr = Loki_PoiseMod::GetSingleton();
+
     float a_result = (a_actor->equippedWeight + (a_actor->GetBaseActorValue(RE::ActorValue::kHeavyArmor) * 0.20f));
-    if ((a_actor->HasKeyword(ptr->kCreature) && !a_actor->HasKeyword(ptr->kDragon))) {
-        a_result = a_actor->GetWeight() * ptr->CreaturePoiseHealthMult;
-    } else if (a_actor->HasKeyword(ptr->kDragon)) {
-        a_result = a_actor->GetWeight() * ptr->DragonPoiseHealthMult;
-    } else if (a_actor->HasKeyword(ptr->kDwarven)) {
-        a_result = a_actor->GetWeight() * ptr->DwarvenPoiseHealthMult;
+
+    for (auto idx : ptr->poiseRaceMap) {
+        if (a_actor && (a_actor->race->formID == idx.first->formID)) {
+            a_result = a_actor->GetWeight() * idx.second[0];
+        }
     }
 
     RE::BSFixedString buffKeyword = "MaxPoiseBuff";

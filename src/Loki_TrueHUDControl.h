@@ -2,6 +2,9 @@
 #include "TrueHUDAPI.h"
 #include "C:/dev/simpleini-master/SimpleIni.h"
 
+#include "Loki_PoiseMod.h"
+#include "Loki_PluginTools.h"
+
 class Loki_TrueHUDControl {
 
 public:

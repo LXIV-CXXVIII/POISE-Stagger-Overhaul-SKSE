@@ -2,12 +2,7 @@
 #include "Loki_PoiseMod.h"
 #include "Loki_PluginTools.h"
 #include "Loki_TrueHUDControl.h"
-
-
 #include "TrueHUDAPI.h"
-#include <intrin.h>
-#include <iostream>
-#include <string>
 
 const SKSE::MessagingInterface* g_messaging2 = nullptr;
 
@@ -100,15 +95,14 @@ namespace PoiseMod {  // Papyrus Functions
         if (!a_actor) {
             return -1.00f;
         } else {
-            //Loki_PluginTools::ActorHasEffectWithKeyword(a_actor);
             auto ptr = Loki_PoiseMod::GetSingleton();
+
             float a_result = (a_actor->equippedWeight + (a_actor->GetBaseActorValue(RE::ActorValue::kHeavyArmor) * 0.20f));
-            if ((a_actor->HasKeyword(ptr->kCreature) && !a_actor->HasKeyword(ptr->kDragon))) {
-                a_result = a_actor->GetWeight() * ptr->CreaturePoiseHealthMult;
-            } else if (a_actor->HasKeyword(ptr->kDragon)) {
-                a_result = a_actor->GetWeight() * ptr->DragonPoiseHealthMult;
-            } else if (a_actor->HasKeyword(ptr->kDwarven)) {
-                a_result = a_actor->GetWeight() * ptr->DwarvenPoiseHealthMult;
+
+            for (auto idx : ptr->poiseRaceMap) {
+                if (a_actor && (a_actor->race->formID == idx.first->formID)) {
+                    a_result = a_actor->GetWeight() * idx.second[0];
+                }
             }
 
             RE::BSFixedString buffKeyword = "MaxPoiseBuff";

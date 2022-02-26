@@ -1,60 +1,6 @@
-#include "C:/dev/simpleini-master/SimpleIni.h"
-#include <toml++/toml.h>
-
 #include "Loki_PoiseMod.h"
-#include "Loki_PluginTools.h"
 
-/* a work in progress thing for storing Poise Health and Poise Damage multipliers
-   for races, in a concise and easy manner, iterating through .ini strings to find
-   .esp name, Form ID, poise HP mul, and poise dmg Mul.
-*/
-void Loki_PoiseMod::ReadPoiseIni(const wchar_t* a_filename, std::unordered_map<RE::TESRace*, float*> a_map) {
-
-    CSimpleIniA ini;
-    ini.SetUnicode();
-    auto filename = a_filename;
-    SI_Error rc = ini.LoadFile(filename);
-
-    std::string colon = ":";
-    std::string comma = ",";
-    std::list<CSimpleIniA::Entry> keyList = {};
-    ini.GetAllKeys("FORM_IDS", keyList);
-    for (auto idx : keyList) {
-        logger::info("For every entry in keylist");
-        RE::FormID formID = NULL;
-        std::string_view espName = NULL;
-        std::string item = idx.pItem;
-        for (int i = 0; i < 64; i++) {
-            logger::info("iterate through key");
-            if (item[i] == colon[0]) {
-                logger::info("found what we need");
-                item[i] = 0;
-                espName = (const char*)item[0];
-                formID = (RE::FormID)std::stoi((const char*)item[i + 1]);
-                auto dataHandle = RE::TESDataHandler::GetSingleton();
-                auto race = dataHandle->LookupForm<RE::TESRace>(formID, espName);
-                bool* b = {};
-                std::string value = (std::string)ini.GetValue("FORM_IDS", idx.pItem, "null", b);
-                float* varStruct = {};
-                for (int i = 0; i < 64; i++) {
-                    if (value[i] == comma[0]) {
-                        logger::info("Found what we need");
-                        value[i] = 0;
-                        varStruct[0] = std::stof((std::string)(const char*)value[0]);
-                        varStruct[1] = std::stof((std::string)(const char*)value[i + 1]);
-                        logger::info("Value assignment finished");
-                        break;
-                    }
-                }
-                a_map.insert_or_assign(race ? race : nullptr, varStruct);
-                logger::info("Assigning structure to race map");
-                break;
-            }
-        }
-    }
-}
-
-void Loki_PoiseMod::ReadPoiseTOML(std::unordered_map<RE::TESRace*, float*> a_map) {
+void Loki_PoiseMod::ReadPoiseTOML() {
 
     constexpr auto path = L"Data/SKSE/Plugins/loki_POISE";
     constexpr auto ext = L".toml";
@@ -62,7 +8,7 @@ void Loki_PoiseMod::ReadPoiseTOML(std::unordered_map<RE::TESRace*, float*> a_map
 
     auto dataHandle = RE::TESDataHandler::GetSingleton();
 
-    const auto readToml = [&a_map, dataHandle](std::filesystem::path path) {
+    const auto readToml = [&](std::filesystem::path path) {
         logger::info("Reading {}...", path.string());
         try {
 
@@ -72,17 +18,19 @@ void Loki_PoiseMod::ReadPoiseTOML(std::unordered_map<RE::TESRace*, float*> a_map
                 auto& raceTable = *elem.as_table();
 
                 auto formID = raceTable["FormID"].value<RE::FormID>();
+                logger::info("FormID -> {}", *formID);
                 auto plugin = raceTable["Plugin"].value<std::string_view>();
+                logger::info("plugin -> {}", *plugin);
                 auto race = dataHandle->LookupForm<RE::TESRace>(*formID, *plugin);
 
                 auto poiseMults = raceTable["PoiseMults"].as_array();
                 if (poiseMults) {
-                    float* varStruct = {};
-                    for (int idx = 0; idx <= 1; idx++) {
-                        auto result = (float)**poiseMults->get_as<double>(idx);
-                        varStruct[idx] = result;
+                    std::vector<float> muls = {};
+                    for (auto& MulValue : *poiseMults) {
+                        logger::info("multiplier -> {}", *MulValue.value<float>());
+                        muls.push_back(*MulValue.value<float>());
                     }
-                    a_map.insert_or_assign(race ? race : nullptr, varStruct);
+                    poiseRaceMap.insert_or_assign(race ? race : nullptr, muls);
                 }
             }
 
@@ -95,7 +43,7 @@ void Loki_PoiseMod::ReadPoiseTOML(std::unordered_map<RE::TESRace*, float*> a_map
         } catch (const std::exception& e) {
             logger::error("{}", e.what());
         } catch (...) {
-            logger::error("Unknown failute"sv);
+            logger::error("Unknown failure"sv);
         }
     };
 
@@ -116,6 +64,8 @@ void Loki_PoiseMod::ReadPoiseTOML(std::unordered_map<RE::TESRace*, float*> a_map
 
     logger::info("Success");
 
+    return;
+
 }
 
 /* the main class for the mod. Contains Poise ctor, GetSingleton, all hooks,
@@ -123,12 +73,7 @@ void Loki_PoiseMod::ReadPoiseTOML(std::unordered_map<RE::TESRace*, float*> a_map
 */
 Loki_PoiseMod::Loki_PoiseMod() {
 
-    //Loki_PoiseMod::ReadPoiseIni(L"Data/SKSE/Plugins/loki_POISE/loki_POISE_RaceHealthSettings.ini", this->healthKywdMap);
-        //Loki_PoiseMod::ReadPoiseIni(L"Data/SKSE/Plugins/loki_POISE/loki_POISE_RaceDamageSettings.ini", this->damageKywdMap);
-
-    //Loki_PoiseMod::ReadPoiseIni(L"Data/SKSE/Plugins/loki_POISE/loki_POISE_RaceSettings.ini", this->poiseRaceMap);
-
-    //Loki_PoiseMod::ReadPoiseTOML(this->poiseRaceMap);
+    Loki_PoiseMod::ReadPoiseTOML();
 
     CSimpleIniA ini;
     ini.SetUnicode();
@@ -142,14 +87,6 @@ Loki_PoiseMod::Loki_PoiseMod() {
     this->NPCRagdollReplacer = ini.GetBoolValue("MAIN", "bNPCRagdollReplacer", false);
     this->PoiseRegenEnabled = ini.GetBoolValue("MAIN", "bPoiseRegen", false);
     this->TrueHUDBars = ini.GetBoolValue("MAIN", "bTrueHUDBars", false);
-
-    this->CreaturePoiseHealthMult = ini.GetDoubleValue("ENEMY", "fCreaturePoiseHealthMult", -1.00f);
-    this->DragonPoiseHealthMult = ini.GetDoubleValue("ENEMY", "fDragonPoiseHealthMult", -1.00f);
-    this->DwarvenPoiseHealthMult = ini.GetDoubleValue("ENEMY", "fDwarvenPoiseHealthMult", -1.00f);
-
-    this->CreaturePoiseDamageMult = ini.GetDoubleValue("ENEMY", "fCreaturePoiseDamageMult", -1.00f);
-    this->DragonPoiseDamageMult = ini.GetDoubleValue("ENEMY", "fDragonPoiseDamageMult", -1.00f);
-    this->DwarvenPoiseDamageMult = ini.GetDoubleValue("ENEMY", "fDwarvenPoiseDamageMult", -1.00f);
 
     this->PowerAttackMult = ini.GetDoubleValue("WEAPON", "fPowerAttackMult", -1.00f);
     this->BlockedMult = ini.GetDoubleValue("WEAPON", "fBlockedMult", -1.00f);
@@ -254,44 +191,13 @@ float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_a
     a_actor->GetGraphVariableBool("IsAttacking", atak);
     auto aggressor = a_hitData.aggressor.get();
 
-    /*
-    for (auto idx : ptr->damageKywdMap) {
-        if (idx.first && a_actor->HasKeyword(idx.first)) {
-            auto creatureResult = aggressor->GetWeight();
-            if (bolk) {
-                return (creatureResult * idx.second[1]) * ptr->BlockedMult;
-            }
-            if (atak) {
-                return (creatureResult * idx.second[1]) * ptr->HyperArmourMult;
-            }
-            return (creatureResult * idx.second[1]);
+    for (auto idx : ptr->poiseRaceMap) {
+        if (aggressor && (aggressor->race->formID == idx.first->formID)) {
+            auto result = aggressor->GetWeight();
+            if (bolk) { return (result * idx.second[1]) * ptr->BlockedMult; };
+            if (atak) { return (result * idx.second[1]) * ptr->HyperArmourMult; };
+            return (result * idx.second[1]);
         }
-    }
-    */
-    if ((aggressor->HasKeyword(ptr->kCreature) && !aggressor->HasKeyword(ptr->kDragon) && !aggressor->HasKeyword(ptr->kGiant))) {
-        if (bolk) {
-            return (aggressor->GetWeight() * ptr->CreaturePoiseDamageMult) * ptr->BlockedMult;
-        }
-        if (atak) {
-            return (aggressor->GetWeight() * ptr->CreaturePoiseDamageMult) * ptr->HyperArmourMult;
-        }
-        return (aggressor->GetWeight() * ptr->CreaturePoiseDamageMult);
-    } else if (aggressor->HasKeyword(ptr->kDragon)) {
-        if (bolk) {
-            return (aggressor->GetWeight() * ptr->DragonPoiseDamageMult) * ptr->BlockedMult;
-        }
-        if (atak) {
-            return (aggressor->GetWeight() * ptr->DragonPoiseDamageMult) * ptr->HyperArmourMult;
-        }
-        return (aggressor->GetWeight() * ptr->DragonPoiseDamageMult);
-    } else if (aggressor->HasKeyword(ptr->kDwarven)) {
-        if (bolk) {
-            return (aggressor->GetWeight() * ptr->DwarvenPoiseDamageMult) * ptr->BlockedMult;
-        }
-        if (atak) {
-            return (aggressor->GetWeight() * ptr->DwarvenPoiseDamageMult) * ptr->HyperArmourMult;
-        }
-        return (aggressor->GetWeight() * ptr->DwarvenPoiseDamageMult);
     }
 
     auto weap = a_hitData.weapon;
@@ -428,23 +334,10 @@ float Loki_PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
 
     float a_result = (a_actor->equippedWeight + (a_actor->GetBaseActorValue(RE::ActorValue::kHeavyArmor) * 0.20f));
 
-    /*
-    for (auto idx : ptr->healthKywdMap) {
-        if (idx.first && a_actor->HasKeyword(idx.first)) {
-            return a_result * idx.second[0];
+    for (auto idx : ptr->poiseRaceMap) {
+        if (a_actor && (a_actor->race->formID == idx.first->formID)) {
+            a_result = a_actor->GetWeight() * idx.second[0];
         }
-    }
-    */
-
-
-    if ((a_actor->HasKeyword(ptr->kCreature) && !a_actor->HasKeyword(ptr->kDragon))) {
-        a_result = a_actor->GetWeight() * ptr->CreaturePoiseHealthMult;
-    } 
-    else if (a_actor->HasKeyword(ptr->kDragon)) {
-        a_result = a_actor->GetWeight() * ptr->DragonPoiseHealthMult;
-    } 
-    else if (a_actor->HasKeyword(ptr->kDwarven)) {
-        a_result = a_actor->GetWeight() * ptr->DwarvenPoiseHealthMult;
     }
 
     RE::BSFixedString buffKeyword = "MaxPoiseBuff";
@@ -702,7 +595,6 @@ void Loki_PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Acto
         }
     };
 
-    logger::info("HealthDamage_Character executed");
     return _HandleHealthDamage_Character(a_char, a_attacker, a_damage);
 
 }
@@ -868,7 +760,6 @@ void Loki_PoiseMod::HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_pl
         }
     };
 
-    logger::info("HealthDamage_PlayerCharacter executed");
     return _HandleHealthDamage_PlayerCharacter(a_playerChar, a_attacker, a_damage);
 
 }
