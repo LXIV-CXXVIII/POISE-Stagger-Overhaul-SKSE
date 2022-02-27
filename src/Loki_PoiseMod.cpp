@@ -190,10 +190,11 @@ float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_a
     a_actor->GetGraphVariableBool("IsAttacking", atk);
     auto aggressor = a_hitData.aggressor.get();
 
-    for (auto idx : ptr->poiseRaceMap) {
-        auto a_actorRace = aggressor->race;
-        if (aggressor && a_actorRace && idx.first) {
-            if (a_actorRace->formID == idx.first->formID) {
+    for (auto& idx : ptr->poiseRaceMap) {
+        auto& a_actorRace = aggressor->race;
+        auto& a_mapRace = idx.first;
+        if (aggressor && a_actorRace && a_mapRace) {
+            if (a_actorRace->formID == a_mapRace->formID) {
                 auto result = aggressor->GetWeight();
                 if (blk) { return (result * idx.second[1]) * ptr->BlockedMult; };
                 if (atk) { return (result * idx.second[1]) * ptr->HyperArmourMult; };
@@ -339,10 +340,11 @@ float Loki_PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
 
     float a_result = (a_actor->equippedWeight + (a_actor->GetBaseActorValue(RE::ActorValue::kHeavyArmor) * 0.20f));
 
-    for (auto idx : ptr->poiseRaceMap) {
-        auto a_actorRace = a_actor->race;
-        if (a_actor && a_actorRace && idx.first) {
-            if (a_actorRace->formID == idx.first->formID) {
+    for (auto& idx : ptr->poiseRaceMap) {
+        auto& a_actorRace = a_actor->race;
+        auto& a_mapRace = idx.first;
+        if (a_actor && a_actorRace && a_mapRace) {
+            if (a_actorRace->formID == a_mapRace->formID) {
                 a_result = a_actor->GetWeight() * idx.second[0];
             }
         }
@@ -396,8 +398,10 @@ bool Loki_PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk) 
             else {
                 str = ptr->poiseLargestBwd;
             }
-            Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
-                FlashActorSpecialBar(SKSE::GetPluginHandle(), a_this->GetHandle(), true);
+            if (Loki_TrueHUDControl::GetSingleton()->g_trueHUD) {
+                Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
+                    FlashActorSpecialBar(SKSE::GetPluginHandle(), a_this->GetHandle(), true);
+            }
             a_this->NotifyAnimationGraph(str);
             return false;
         }
@@ -412,8 +416,10 @@ bool Loki_PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk) 
             else {
                 str = ptr->poiseLargestBwd;
             }
-            Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
-                FlashActorSpecialBar(SKSE::GetPluginHandle(), a_this->GetHandle(), true);
+            if (Loki_TrueHUDControl::GetSingleton()->g_trueHUD) {
+                Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
+                    FlashActorSpecialBar(SKSE::GetPluginHandle(), a_this->GetHandle(), true);
+            }
             a_this->NotifyAnimationGraph(str);
             return false;
         }
@@ -508,8 +514,10 @@ void Loki_PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Acto
             a_char->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
             static RE::BSFixedString str = NULL;
             if ((float)a_char->pad0EC <= 0.00f) {
-                Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
-                    FlashActorSpecialBar(SKSE::GetPluginHandle(), a_char->GetHandle(), false);
+                if (Loki_TrueHUDControl::GetSingleton()->g_trueHUD) {
+                    Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
+                        FlashActorSpecialBar(SKSE::GetPluginHandle(), a_char->GetHandle(), false);
+                }
                 a_char->pad0EC = maxPoise; // remember earlier when we calculated max poise health?
                 if (a_char->HasKeyword(ptr->kCreature) || a_char->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
                     a_char->SetGraphVariableFloat(ptr->staggerMagn, 1.00f);
@@ -673,8 +681,10 @@ void Loki_PoiseMod::HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_pl
             a_playerChar->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
             static RE::BSFixedString str = NULL;
             if ((float)a_playerChar->pad0EC <= 0.00f) {
-                Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
-                    FlashActorSpecialBar(SKSE::GetPluginHandle(), a_playerChar->GetHandle(), false);
+                if (Loki_TrueHUDControl::GetSingleton()->g_trueHUD) {
+                    Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
+                        FlashActorSpecialBar(SKSE::GetPluginHandle(), a_playerChar->GetHandle(), false);
+                }
                 a_playerChar->pad0EC = maxPoise; // remember earlier when we calculated max poise health?
                 if (a_playerChar->HasKeyword(ptr->kCreature) || a_playerChar->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
                     a_playerChar->SetGraphVariableFloat(ptr->staggerMagn, 1.00f);
@@ -828,8 +838,10 @@ void Loki_PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData) 
     if ((float)a_actor->pad0EC <= 0.00f) {
         a_actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
         a_actor->pad0EC = maxPoise; // remember earlier when we calculated max poise health?
-        Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
-            FlashActorSpecialBar(SKSE::GetPluginHandle(), a_actor->GetHandle(), false);
+        if (Loki_TrueHUDControl::GetSingleton()->g_trueHUD) {
+            Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
+                FlashActorSpecialBar(SKSE::GetPluginHandle(), a_actor->GetHandle(), false);
+        }
         if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
             a_actor->SetGraphVariableFloat(ptr->staggerMagn, 1.00f);
             a_actor->NotifyAnimationGraph(ptr->ae_Stagger);          // play animation
