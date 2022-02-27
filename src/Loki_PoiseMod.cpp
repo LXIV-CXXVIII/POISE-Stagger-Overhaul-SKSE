@@ -191,16 +191,28 @@ float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_a
     auto aggressor = a_hitData.aggressor.get();
 
     for (auto& idx : ptr->poiseRaceMap) {
-        auto& a_actorRace = aggressor->race;
-        auto& a_mapRace = idx.first;
-        if (aggressor && a_actorRace && a_mapRace) {
-            if (a_actorRace->formID == a_mapRace->formID) {
-                auto result = aggressor->GetWeight();
-                if (blk) { return (result * idx.second[1]) * ptr->BlockedMult; };
-                if (atk) { return (result * idx.second[1]) * ptr->HyperArmourMult; };
-                return (result * idx.second[1]);
+        if (aggressor) {
+            RE::TESRace* a_actorRace = aggressor->race;
+            RE::TESRace* a_mapRace = idx.first;
+            if (aggressor && a_actorRace && a_mapRace) {
+                if (a_actorRace->formID == a_mapRace->formID) {
+                    auto result = aggressor->GetWeight();
+                    if (blk) { return (result * idx.second[1]) * ptr->BlockedMult; };
+                    if (atk) { return (result * idx.second[1]) * ptr->HyperArmourMult; };
+                    return (result * idx.second[1]);
+                }
             }
         }
+        //auto& a_actorRace = aggressor->race;
+        //auto& a_mapRace = idx.first;
+        //if (aggressor && a_actorRace && a_mapRace) {
+        //    if (a_actorRace->formID == a_mapRace->formID) {
+        //        auto result = aggressor->GetWeight();
+        //        if (blk) { return (result * idx.second[1]) * ptr->BlockedMult; };
+        //        if (atk) { return (result * idx.second[1]) * ptr->HyperArmourMult; };
+        //        return (result * idx.second[1]);
+        //    }
+        //}
         //if (aggressor && (aggressor->race->formID == idx.first->formID)) {
         //    auto result = aggressor->GetWeight();
         //    if (blk) { return (result * idx.second[1]) * ptr->BlockedMult; };
@@ -341,13 +353,23 @@ float Loki_PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
     float a_result = (a_actor->equippedWeight + (a_actor->GetBaseActorValue(RE::ActorValue::kHeavyArmor) * 0.20f));
 
     for (auto& idx : ptr->poiseRaceMap) {
-        auto& a_actorRace = a_actor->race;
-        auto& a_mapRace = idx.first;
-        if (a_actor && a_actorRace && a_mapRace) {
-            if (a_actorRace->formID == a_mapRace->formID) {
-                a_result = a_actor->GetWeight() * idx.second[0];
+
+        if (a_actor) {
+            RE::TESRace* a_actorRace = a_actor->race;
+            RE::TESRace* a_mapRace = idx.first;
+            if (a_actor && a_actorRace && a_mapRace) {
+                if (a_actorRace->formID == a_mapRace->formID) {
+                    a_result = a_actor->GetWeight() * idx.second[0];
+                }
             }
         }
+        //auto& a_actorRace = a_actor->race;
+        //auto& a_mapRace = idx.first;
+        //if (a_actor && a_actorRace && a_mapRace) {
+        //    if (a_actorRace->formID == a_mapRace->formID) {
+        //        a_result = a_actor->GetWeight() * idx.second[0];
+        //    }
+        //}
         //if (a_actor && (a_actor->race->formID == idx.first->formID)) {
         //    a_result = a_actor->GetWeight() * idx.second[0];
         //}
