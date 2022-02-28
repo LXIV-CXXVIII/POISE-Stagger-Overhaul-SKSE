@@ -188,51 +188,20 @@ float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_a
     bool blk, atk;
     a_actor->GetGraphVariableBool("IsBlocking", blk);
     a_actor->GetGraphVariableBool("IsAttacking", atk);
-    auto aggressor = a_hitData.aggressor.get();
-
-    for (auto& idx : ptr->poiseRaceMap) {
-        if (aggressor) {
-            RE::TESRace* a_actorRace = aggressor->race;
-            RE::TESRace* a_mapRace = idx.first;
-            if (aggressor && a_actorRace && a_mapRace) {
-                if (a_actorRace->formID == a_mapRace->formID) {
-                    auto result = aggressor->GetWeight();
-                    if (blk) { return (result * idx.second[1]) * ptr->BlockedMult; };
-                    if (atk) { return (result * idx.second[1]) * ptr->HyperArmourMult; };
-                    return (result * idx.second[1]);
-                }
-            }
-        }
-        //auto& a_actorRace = aggressor->race;
-        //auto& a_mapRace = idx.first;
-        //if (aggressor && a_actorRace && a_mapRace) {
-        //    if (a_actorRace->formID == a_mapRace->formID) {
-        //        auto result = aggressor->GetWeight();
-        //        if (blk) { return (result * idx.second[1]) * ptr->BlockedMult; };
-        //        if (atk) { return (result * idx.second[1]) * ptr->HyperArmourMult; };
-        //        return (result * idx.second[1]);
-        //    }
-        //}
-        //if (aggressor && (aggressor->race->formID == idx.first->formID)) {
-        //    auto result = aggressor->GetWeight();
-        //    if (blk) { return (result * idx.second[1]) * ptr->BlockedMult; };
-        //    if (atk) { return (result * idx.second[1]) * ptr->HyperArmourMult; };
-        //    return (result * idx.second[1]);
-        //}
-    }
+    auto aggressor = a_hitData.aggressor.get().get();
 
     auto weap = a_hitData.weapon;
     float a_result = 0.00f;
     if (!weap) {
         auto attacker = a_hitData.aggressor.get();
         if (!attacker) {
-            return 8.00f;
+            a_result = 8.00f;
         }
         auto attackerWeap = attacker->GetAttackingWeapon();
         if (!attackerWeap) {
-            return 8.00f;
+            a_result = 8.00f;
         }
-        return attackerWeap->GetWeight();
+        a_result = attackerWeap->GetWeight();
     }
     a_result = weap->weight;
 
@@ -306,14 +275,14 @@ float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_a
     RE::BSFixedString buffKeyword = "PoiseDmgBuff";
     RE::BSFixedString nerfKeyword = "PoiseDmgNerf";
 
-    auto hasBuff = Loki_PluginTools::ActorHasEffectWithKeyword(aggressor.get(), buffKeyword);
+    auto hasBuff = Loki_PluginTools::ActorHasEffectWithKeyword(aggressor, buffKeyword);
     if (hasBuff) {
         logger::info("damage buff keyword detected");
         auto buffPercent = hasBuff->effectItem.magnitude / 100.00f; // convert to percentage
         auto resultingBuff = (a_result * buffPercent);
         a_result += resultingBuff; // aggressor has buff that makes them do more poise damage
     }
-    auto hasNerf = Loki_PluginTools::ActorHasEffectWithKeyword(aggressor.get(), nerfKeyword);
+    auto hasNerf = Loki_PluginTools::ActorHasEffectWithKeyword(aggressor, nerfKeyword);
     if (hasNerf) {
         logger::info("damage nerf keyword detected");
         auto nerfPercent = hasNerf->effectItem.magnitude / 100.00f;
@@ -329,12 +298,28 @@ float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_a
         a_result *= ptr->BashMult;
     }
 
+    if (aggressor->HasKeyword(ptr->kCreature) || aggressor->HasKeyword(ptr->kDwarven)) {
+        for (auto idx : ptr->poiseRaceMap) {
+            if (aggressor) {
+                RE::TESRace* a_actorRace = aggressor->race;
+                RE::TESRace* a_mapRace = idx.first;
+                if (aggressor && a_actorRace && a_mapRace) {
+                    if (a_actorRace->formID == a_mapRace->formID) {
+                        auto result = aggressor->GetWeight();
+                        a_result = result * idx.second[1];
+                    }
+                }
+            }
+        }
+    }
+
     if (blk) {
         a_result *= ptr->BlockedMult;
     }
     if (atk) {
         a_result *= ptr->HyperArmourMult;
     }
+
     if ((a_actor->HasKeyword(ptr->kGhost) && !weap->HasKeyword(ptr->WeapMaterialSilver))) {
         a_result = 0.00f;
     }
@@ -352,27 +337,18 @@ float Loki_PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
 
     float a_result = (a_actor->equippedWeight + (a_actor->GetBaseActorValue(RE::ActorValue::kHeavyArmor) * 0.20f));
 
-    for (auto& idx : ptr->poiseRaceMap) {
-
-        if (a_actor) {
-            RE::TESRace* a_actorRace = a_actor->race;
-            RE::TESRace* a_mapRace = idx.first;
-            if (a_actor && a_actorRace && a_mapRace) {
-                if (a_actorRace->formID == a_mapRace->formID) {
-                    a_result = a_actor->GetWeight() * idx.second[0];
+    if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) {
+        for (auto idx : ptr->poiseRaceMap) {
+            if (a_actor) {
+                RE::TESRace* a_actorRace = a_actor->race;
+                RE::TESRace* a_mapRace = idx.first;
+                if (a_actorRace && a_mapRace) {
+                    if (a_actorRace->formID == a_mapRace->formID) {
+                        a_result = a_actor->GetWeight() * idx.second[0];
+                    }
                 }
             }
         }
-        //auto& a_actorRace = a_actor->race;
-        //auto& a_mapRace = idx.first;
-        //if (a_actor && a_actorRace && a_mapRace) {
-        //    if (a_actorRace->formID == a_mapRace->formID) {
-        //        a_result = a_actor->GetWeight() * idx.second[0];
-        //    }
-        //}
-        //if (a_actor && (a_actor->race->formID == idx.first->formID)) {
-        //    a_result = a_actor->GetWeight() * idx.second[0];
-        //}
     }
 
     RE::BSFixedString buffKeyword = "MaxPoiseBuff";
@@ -507,14 +483,7 @@ void Loki_PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Acto
             a_result = 0.00f;
         }
         else {
-            if (spellItem->data.spellType == spellType::kLeveledSpell) {
-                for (auto idx : spellItem->effects) {
-                    if (idx) {
-                        a_result += idx->cost;
-                    }
-                }
-            }
-            else { a_result = 0.00f; }
+            a_result = a_damage;
 
             a_char->pad0EC -= (int)a_result;
             if (a_char->pad0EC > 100000) a_char->pad0EC = 0.00f;
@@ -675,13 +644,7 @@ void Loki_PoiseMod::HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_pl
             a_result = 0.00f;
         } 
         else {
-            if (spellItem->data.spellType == spellType::kLeveledSpell) {
-                for (auto idx : spellItem->effects) {
-                    if (idx) {
-                        a_result += idx->cost;
-                    }
-                }
-            } else { a_result = 0.00f; }
+            a_result = a_damage;
 
             a_playerChar->pad0EC -= (int)a_result;
             if (a_playerChar->pad0EC > 100000) a_playerChar->pad0EC = 0.00f;
