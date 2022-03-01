@@ -23,11 +23,11 @@ void Loki_PoiseMod::ReadPoiseTOML() {
                 logger::info("plugin -> {}", *plugin);
                 auto race = dataHandle->LookupForm<RE::TESRace>(*formID, *plugin);
 
-                auto poiseMults = raceTable["PoiseMults"].as_array();
+                auto poiseMults = raceTable["PoiseValues"].as_array();
                 if (poiseMults) {
                     std::vector<float> muls = {};
                     for (auto& MulValue : *poiseMults) {
-                        logger::info("multiplier -> {}", *MulValue.value<float>());
+                        logger::info("value -> {}", *MulValue.value<float>());
                         muls.push_back(*MulValue.value<float>());
                     }
                     poiseRaceMap.insert_or_assign(race ? race : nullptr, muls);
@@ -68,9 +68,6 @@ void Loki_PoiseMod::ReadPoiseTOML() {
 
 }
 
-/* the main class for the mod. Contains Poise ctor, GetSingleton, all hooks,
-   Calc. Max Poise and Calc. Poise damage, etc. Everything essential to the mod.
-*/
 Loki_PoiseMod::Loki_PoiseMod() {
 
     Loki_PoiseMod::ReadPoiseTOML();
@@ -134,9 +131,6 @@ Loki_PoiseMod::Loki_PoiseMod() {
 
 }
 
-/* returns the singleton for the PoiseMod class. 
-   Use this instead of create a new instance.
-*/
 Loki_PoiseMod* Loki_PoiseMod::GetSingleton() {
     static Loki_PoiseMod* singleton = new Loki_PoiseMod();
     return singleton;
@@ -197,79 +191,103 @@ float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_a
         if (!attacker) {
             a_result = 8.00f;
         }
-        auto attackerWeap = attacker->GetAttackingWeapon();
-        if (!attackerWeap) {
-            a_result = 8.00f;
+        else {
+            auto attackerWeap = attacker->GetAttackingWeapon();
+            if (!attackerWeap) {
+                a_result = 8.00f;
+            }
+            else {
+                a_result = attackerWeap->GetWeight();
+            }
         }
-        a_result = attackerWeap->GetWeight();
     }
-    a_result = weap->weight;
+    else {
+        a_result = weap->weight;
 
-    switch (weap->weaponData.animationType.get()) {
-    case RE::WEAPON_TYPE::kBow:
-        a_result *= ptr->BowMult;
-        break;
-
-    case RE::WEAPON_TYPE::kCrossbow:
-        a_result *= ptr->CrossbowMult;
-        break;
-
-    case RE::WEAPON_TYPE::kHandToHandMelee:
-        if (weap->HasKeyword(0x19AAB3)) {
-            a_result *= ptr->CaestusMult;
+        switch (weap->weaponData.animationType.get()) {
+        case RE::WEAPON_TYPE::kBow:
+            a_result *= ptr->BowMult;
             break;
-        }
-        if (weap->HasKeyword(0x19AAB4)) {
-            a_result *= ptr->ClawMult;
+
+        case RE::WEAPON_TYPE::kCrossbow:
+            a_result *= ptr->CrossbowMult;
             break;
-        }
-        a_result *= ptr->Hand2Hand;
-        break;
 
-    case RE::WEAPON_TYPE::kOneHandAxe:
-        a_result *= ptr->OneHandAxe;
-        break;
-
-    case RE::WEAPON_TYPE::kOneHandDagger:
-        a_result *= ptr->OneHandDagger;
-        break;
-
-    case RE::WEAPON_TYPE::kOneHandMace:
-        a_result *= ptr->OneHandMace;
-        break;
-
-    case RE::WEAPON_TYPE::kOneHandSword:
-        if (weap->HasKeyword(0x801)) {
-            a_result *= ptr->RapierMult;
+        case RE::WEAPON_TYPE::kHandToHandMelee:
+            if (weap->HasKeyword(0x19AAB3)) {
+                a_result *= ptr->CaestusMult;
+                break;
+            }
+            if (weap->HasKeyword(0x19AAB4)) {
+                a_result *= ptr->ClawMult;
+                break;
+            }
+            a_result *= ptr->Hand2Hand;
             break;
-        }
-        a_result *= ptr->OneHandSword;
-        break;
 
-    case RE::WEAPON_TYPE::kTwoHandAxe:
-        if (weap->HasKeyword(0xE4580)) {
-            a_result *= ptr->HalberdMult;
+        case RE::WEAPON_TYPE::kOneHandAxe:
+            a_result *= ptr->OneHandAxe;
             break;
-        }
-        if (weap->HasKeyword(0xE4581)) {
-            a_result *= ptr->QtrStaffMult;
-            break;
-        }
-        a_result *= ptr->TwoHandAxe;
-        break;
 
-    case RE::WEAPON_TYPE::kTwoHandSword:
-        if (weap->HasKeyword(0xE457E)) {
-            a_result *= ptr->PikeMult;
+        case RE::WEAPON_TYPE::kOneHandDagger:
+            a_result *= ptr->OneHandDagger;
             break;
-        }
-        if (weap->HasKeyword(0xE457F)) {
-            a_result *= ptr->SpearMult;
-            break;
-        }
-        a_result *= ptr->TwoHandSword;
-        break;
 
+        case RE::WEAPON_TYPE::kOneHandMace:
+            a_result *= ptr->OneHandMace;
+            break;
+
+        case RE::WEAPON_TYPE::kOneHandSword:
+            if (weap->HasKeyword(0x801)) {
+                a_result *= ptr->RapierMult;
+                break;
+            }
+            a_result *= ptr->OneHandSword;
+            break;
+
+        case RE::WEAPON_TYPE::kTwoHandAxe:
+            if (weap->HasKeyword(0xE4580)) {
+                a_result *= ptr->HalberdMult;
+                break;
+            }
+            if (weap->HasKeyword(0xE4581)) {
+                a_result *= ptr->QtrStaffMult;
+                break;
+            }
+            a_result *= ptr->TwoHandAxe;
+            break;
+
+        case RE::WEAPON_TYPE::kTwoHandSword:
+            if (weap->HasKeyword(0xE457E)) {
+                a_result *= ptr->PikeMult;
+                break;
+            }
+            if (weap->HasKeyword(0xE457F)) {
+                a_result *= ptr->SpearMult;
+                break;
+            }
+            a_result *= ptr->TwoHandSword;
+            break;
+
+        }
+    }
+
+    for (auto idx : ptr->poiseRaceMap) {
+        if (aggressor) {
+            RE::TESRace* a_actorRace = aggressor->race;
+            RE::TESRace* a_mapRace = idx.first;
+            if (aggressor && a_actorRace && a_mapRace) {
+                if (a_actorRace->formID == a_mapRace->formID) {
+                    if (aggressor->HasKeyword(ptr->kCreature) || aggressor->HasKeyword(ptr->kDwarven)) {
+                        a_result = idx.second[1];
+                    }
+                    else {
+                        a_result *= idx.second[1];
+                    }
+                    break;
+                }
+            }
+        }
     }
 
     RE::BSFixedString buffKeyword = "PoiseDmgBuff";
@@ -293,26 +311,9 @@ float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_a
     if (a_hitData.flags == RE::HitData::Flag::kPowerAttack) {
         a_result *= ptr->PowerAttackMult;
     }
-
     if (a_hitData.flags == RE::HitData::Flag::kBash) {
         a_result *= ptr->BashMult;
     }
-
-    if (aggressor->HasKeyword(ptr->kCreature) || aggressor->HasKeyword(ptr->kDwarven)) {
-        for (auto idx : ptr->poiseRaceMap) {
-            if (aggressor) {
-                RE::TESRace* a_actorRace = aggressor->race;
-                RE::TESRace* a_mapRace = idx.first;
-                if (aggressor && a_actorRace && a_mapRace) {
-                    if (a_actorRace->formID == a_mapRace->formID) {
-                        auto result = aggressor->GetWeight();
-                        a_result = result * idx.second[1];
-                    }
-                }
-            }
-        }
-    }
-
     if (blk) {
         a_result *= ptr->BlockedMult;
     }
@@ -328,24 +329,24 @@ float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_a
 
 }
 
-/* a_result = (creatureWeight x creatureMul) x effectMul;
-   a_result = (equippedWeight + (heavyArmourskill x 0.20)) x effectMul;
-*/
 float Loki_PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
 
     auto ptr = Loki_PoiseMod::GetSingleton();
 
     float a_result = (a_actor->equippedWeight + (a_actor->GetBaseActorValue(RE::ActorValue::kHeavyArmor) * 0.20f));
 
-    if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) {
-        for (auto idx : ptr->poiseRaceMap) {
-            if (a_actor) {
-                RE::TESRace* a_actorRace = a_actor->race;
-                RE::TESRace* a_mapRace = idx.first;
-                if (a_actorRace && a_mapRace) {
-                    if (a_actorRace->formID == a_mapRace->formID) {
-                        a_result = a_actor->GetWeight() * idx.second[0];
+    for (auto idx : ptr->poiseRaceMap) {
+        if (a_actor) {
+            RE::TESRace* a_actorRace = a_actor->race;
+            RE::TESRace* a_mapRace = idx.first;
+            if (a_actorRace && a_mapRace) {
+                if (a_actorRace->formID == a_mapRace->formID) {
+                    if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) {
+                        a_result = idx.second[1];
+                    } else {
+                        a_result *= idx.second[1];
                     }
+                    break;
                 }
             }
         }
@@ -373,10 +374,6 @@ float Loki_PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
 
 }
 
-/* Removes ragdolling in favour of animated knockdown.
-   Appropriate direction and NPCs both work, tho NPCs is not
-   recommended to be used.
-*/
 bool Loki_PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk) {
 
     auto ptr = Loki_PoiseMod::GetSingleton();
@@ -426,11 +423,6 @@ bool Loki_PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk) 
 
 }
 
-/* Used for assigning poise values to Player and NPCs.
-   Hooks GetSubmergedLevel() but doesn't do anything with the function itself.
-   Return value is preserved and unmodified.
-   This is a cheap way of ensuring this runs for every actor.
-*/
 float Loki_PoiseMod::GetSubmergedLevel(RE::Actor* a_actor, float a_zPos, RE::TESObjectCELL* a_cell) {
 
     auto ptr = Loki_PoiseMod::GetSingleton();
@@ -448,9 +440,6 @@ float Loki_PoiseMod::GetSubmergedLevel(RE::Actor* a_actor, float a_zPos, RE::TES
 
 }
 
-/* basically if it's not a spell then we don't need to do anything at all
-   and just run the original function as if nothing ever happened.
-*/
 void Loki_PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Actor* a_attacker, float a_damage) {
 
     auto ptr = Loki_PoiseMod::GetSingleton();
@@ -609,9 +598,6 @@ void Loki_PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Acto
 
 }
 
-/* basically if it's not a spell then we don't need to do anything at all
-   and just run the original function as if nothing ever happened.
-*/
 void Loki_PoiseMod::HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_playerChar, RE::Actor* a_attacker, float a_damage) {
 
     auto ptr = Loki_PoiseMod::GetSingleton();
@@ -770,10 +756,6 @@ void Loki_PoiseMod::HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_pl
 
 }
 
-/* The main function of Poise, subtracting poise damage from health and triggering animations.
-   Creatures end up using normal stagger behaviours, but anything else uses the new 
-   poise behaviours and animations. 
-*/
 void Loki_PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData) {
 
     RE::FormID kLurker = 0x14495;
