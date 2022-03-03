@@ -1,6 +1,6 @@
-#include "Loki_TrueHUDControl.h"
+#include "TrueHUDControl.h"
 
-Loki_TrueHUDControl::Loki_TrueHUDControl() {
+Loki::TrueHUDControl::TrueHUDControl() {
     CSimpleIniA ini;
     ini.SetUnicode();
     auto filename = L"Data/SKSE/Plugins/loki_POISE.ini";
@@ -9,14 +9,14 @@ Loki_TrueHUDControl::Loki_TrueHUDControl() {
     this->TrueHUDBars = ini.GetBoolValue("MAIN", "bTrueHUDBars", false);
 }
 
-Loki_TrueHUDControl* Loki_TrueHUDControl::GetSingleton() {
-    static Loki_TrueHUDControl* singleton = new Loki_TrueHUDControl();
+Loki::TrueHUDControl* Loki::TrueHUDControl::GetSingleton() {
+    static Loki::TrueHUDControl* singleton = new Loki::TrueHUDControl();
     return singleton;
 }
 
-float Loki_TrueHUDControl::GetMaxSpecial([[maybe_unused]] RE::Actor* a_actor) {
+float Loki::TrueHUDControl::GetMaxSpecial([[maybe_unused]] RE::Actor* a_actor) {
 
-    auto ptr = Loki_PoiseMod::GetSingleton();
+    auto ptr = Loki::PoiseMod::GetSingleton();
 
     float a_result = (a_actor->equippedWeight + (a_actor->GetBaseActorValue(RE::ActorValue::kHeavyArmor) * 0.20f));
 
@@ -40,14 +40,14 @@ float Loki_TrueHUDControl::GetMaxSpecial([[maybe_unused]] RE::Actor* a_actor) {
     RE::BSFixedString buffKeyword = "MaxPoiseBuff";
     RE::BSFixedString nerfKeyword = "MaxPoiseNerf";
 
-    auto hasBuff = Loki_PluginTools::ActorHasEffectWithKeyword(a_actor, buffKeyword);
+    auto hasBuff = Loki::PluginTools::ActorHasEffectWithKeyword(a_actor, buffKeyword);
     if (hasBuff) {
         logger::info("health buff keyword detected");
         auto buffPercent = hasBuff->effectItem.magnitude / 100.00f; // convert to percentage
         auto resultingBuff = (a_result * buffPercent);
         a_result += resultingBuff;
     }
-    auto hasNerf = Loki_PluginTools::ActorHasEffectWithKeyword(a_actor, nerfKeyword);
+    auto hasNerf = Loki::PluginTools::ActorHasEffectWithKeyword(a_actor, nerfKeyword);
     if (hasNerf) {
         logger::info("health nerf keyword detected");
         auto nerfPercent = hasNerf->effectItem.magnitude / 100.00f;
@@ -59,6 +59,6 @@ float Loki_TrueHUDControl::GetMaxSpecial([[maybe_unused]] RE::Actor* a_actor) {
 
 }
 
-float Loki_TrueHUDControl::GetCurrentSpecial([[maybe_unused]] RE::Actor* a_actor) {
+float Loki::TrueHUDControl::GetCurrentSpecial([[maybe_unused]] RE::Actor* a_actor) {
     return (float)a_actor->pad0EC;
 }

@@ -1,6 +1,6 @@
-#include "Loki_PoiseMod.h"
+#include "PoiseMod.h"
 
-void Loki_PoiseMod::ReadPoiseTOML() {
+void Loki::PoiseMod::ReadPoiseTOML() {
 
     constexpr auto path = L"Data/SKSE/Plugins/loki_POISE";
     constexpr auto ext = L".toml";
@@ -68,9 +68,9 @@ void Loki_PoiseMod::ReadPoiseTOML() {
 
 }
 
-Loki_PoiseMod::Loki_PoiseMod() {
+Loki::PoiseMod::PoiseMod() {
 
-    Loki_PoiseMod::ReadPoiseTOML();
+    Loki::PoiseMod::ReadPoiseTOML();
 
     CSimpleIniA ini;
     ini.SetUnicode();
@@ -131,12 +131,12 @@ Loki_PoiseMod::Loki_PoiseMod() {
 
 }
 
-Loki_PoiseMod* Loki_PoiseMod::GetSingleton() {
-    static Loki_PoiseMod* singleton = new Loki_PoiseMod();
+Loki::PoiseMod* Loki::PoiseMod::GetSingleton() {
+    static Loki::PoiseMod* singleton = new Loki::PoiseMod();
     return singleton;
 }
 
-void Loki_PoiseMod::InstallStaggerHook() {
+void Loki::PoiseMod::InstallStaggerHook() {
     REL::Relocation<std::uintptr_t> StaggerHook{ REL::ID(37673/*628c20*/) };
 
     auto& trampoline = SKSE::GetTrampoline();
@@ -145,14 +145,14 @@ void Loki_PoiseMod::InstallStaggerHook() {
     logger::info("ProcessHitEvent hook injected");
 }
 
-void Loki_PoiseMod::InstallWaterHook() {
+void Loki::PoiseMod::InstallWaterHook() {
     REL::Relocation<std::uintptr_t> ActorUpdate{ REL::ID(36357) };
     // last ditch effort
     auto& trampoline = SKSE::GetTrampoline();
     _GetSubmergedLevel = trampoline.write_call<5>(ActorUpdate.address() + 0x6D3, GetSubmergedLevel);
 }
 
-void Loki_PoiseMod::InstallIsActorKnockdownHook() {
+void Loki::PoiseMod::InstallIsActorKnockdownHook() {
     REL::Relocation<std::uintptr_t> isActorKnockdown{ REL::ID(38858) };
 
     auto& trampoline = SKSE::GetTrampoline();
@@ -161,7 +161,12 @@ void Loki_PoiseMod::InstallIsActorKnockdownHook() {
     logger::info("isActorKnockdown hook injected");
 }
 
-void Loki_PoiseMod::InstallVFuncHooks() {
+void Loki::PoiseMod::InstallMagicEventSink() {
+    auto sourceHolder = RE::ScriptEventSourceHolder::GetSingleton();
+    if (sourceHolder) { sourceHolder->AddEventSink(PoiseMagicDamage::GetSingleton()); }
+}
+
+void Loki::PoiseMod::InstallVFuncHooks() {
     REL::Relocation<std::uintptr_t> CharacterVtbl{ REL::ID(261397) };  // 165DA40
     _HandleHealthDamage_Character = CharacterVtbl.write_vfunc(0x104, HandleHealthDamage_Character);
 
@@ -169,15 +174,46 @@ void Loki_PoiseMod::InstallVFuncHooks() {
     _HandleHealthDamage_PlayerCharacter = PlayerCharacterVtbl.write_vfunc(0x104, HandleHealthDamage_PlayerCharacter);
 }
 
+Loki::PoiseMagicDamage* Loki::PoiseMagicDamage::GetSingleton() {
+    static PoiseMagicDamage singleton;
+    return &singleton;
+}
+
+auto Loki::PoiseMagicDamage::ProcessEvent(const RE::TESHitEvent* a_event, RE::BSTEventSource<RE::TESHitEvent>* a_eventSource) -> RE::BSEventNotifyControl {
+    if (!a_event) {
+        return RE::BSEventNotifyControl::kContinue;
+    }
+    if (!a_event->projectile) {
+        return RE::BSEventNotifyControl::kContinue;
+    }
+    if (!a_event->target || !a_event->cause) {
+        return RE::BSEventNotifyControl::kContinue;
+    } else {
+        if (auto actor = a_event->target.get()->As<RE::Actor>(); actor) {
+            float a_result = 8.00f;
+            actor->pad0EC -= (int)a_result;
+            if (actor->pad0EC > 100000) { actor->pad0EC = 0.00f; }
+
+            if ((float)actor->pad0EC <= 0.00f) {
+
+            }
+        }
+    }
+    if (a_event->target->IsPlayerRef()) {
+        RE::ConsoleLog::GetSingleton()->Print("formID -> %11x", a_event->projectile);
+    }
+    return RE::BSEventNotifyControl::kContinue;
+}
+
 /*
     a_result = (creature->GetWeight() x creatureMul) x blockedMul;
     a_result = ((weaponWeight x weaponTypeMul x effectMul) x blockedMul) x hyperArmrMul
 */
-float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_actor) {
+float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_actor) {
 
     // this whole function is BAD and DIRTY but i cant think of any other way at the moment
 
-    auto ptr = Loki_PoiseMod::GetSingleton();
+    auto ptr = Loki::PoiseMod::GetSingleton();
 
     bool blk, atk;
     a_actor->GetGraphVariableBool("IsBlocking", blk);
@@ -293,14 +329,14 @@ float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_a
     RE::BSFixedString buffKeyword = "PoiseDmgBuff";
     RE::BSFixedString nerfKeyword = "PoiseDmgNerf";
 
-    auto hasBuff = Loki_PluginTools::ActorHasEffectWithKeyword(aggressor, buffKeyword);
+    auto hasBuff = Loki::PluginTools::ActorHasEffectWithKeyword(aggressor, buffKeyword);
     if (hasBuff) {
         logger::info("damage buff keyword detected");
         auto buffPercent = hasBuff->effectItem.magnitude / 100.00f; // convert to percentage
         auto resultingBuff = (a_result * buffPercent);
         a_result += resultingBuff; // aggressor has buff that makes them do more poise damage
     }
-    auto hasNerf = Loki_PluginTools::ActorHasEffectWithKeyword(aggressor, nerfKeyword);
+    auto hasNerf = Loki::PluginTools::ActorHasEffectWithKeyword(aggressor, nerfKeyword);
     if (hasNerf) {
         logger::info("damage nerf keyword detected");
         auto nerfPercent = hasNerf->effectItem.magnitude / 100.00f;
@@ -329,9 +365,9 @@ float Loki_PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_a
 
 }
 
-float Loki_PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
+float Loki::PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
 
-    auto ptr = Loki_PoiseMod::GetSingleton();
+    auto ptr = Loki::PoiseMod::GetSingleton();
 
     float a_result = (a_actor->equippedWeight + (a_actor->GetBaseActorValue(RE::ActorValue::kHeavyArmor) * 0.20f));
 
@@ -355,14 +391,14 @@ float Loki_PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
     RE::BSFixedString buffKeyword = "MaxPoiseBuff";
     RE::BSFixedString nerfKeyword = "MaxPoiseNerf";
 
-    auto hasBuff = Loki_PluginTools::ActorHasEffectWithKeyword(a_actor, buffKeyword);
+    auto hasBuff = Loki::PluginTools::ActorHasEffectWithKeyword(a_actor, buffKeyword);
     if (hasBuff) {
         logger::info("health buff keyword detected");
         auto buffPercent = hasBuff->effectItem.magnitude / 100.00f; // convert to percentage
         auto resultingBuff = (a_result * buffPercent);
         a_result += resultingBuff;
     }
-    auto hasNerf = Loki_PluginTools::ActorHasEffectWithKeyword(a_actor, nerfKeyword);
+    auto hasNerf = Loki::PluginTools::ActorHasEffectWithKeyword(a_actor, nerfKeyword);
     if (hasNerf) {
         logger::info("health nerf keyword detected");
         auto nerfPercent = hasNerf->effectItem.magnitude / 100.00f;
@@ -374,9 +410,9 @@ float Loki_PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
 
 }
 
-bool Loki_PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk) {
+bool Loki::PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk) {
 
-    auto ptr = Loki_PoiseMod::GetSingleton();
+    auto ptr = Loki::PoiseMod::GetSingleton();
 
     auto avHealth = a_this->GetActorValue(RE::ActorValue::kHealth);
     if (a_this->IsOnMount() || avHealth <= 0.00f) {
@@ -393,8 +429,8 @@ bool Loki_PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk) 
             else {
                 str = ptr->poiseLargestBwd;
             }
-            if (Loki_TrueHUDControl::GetSingleton()->g_trueHUD) {
-                Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
+            if (Loki::TrueHUDControl::GetSingleton()->g_trueHUD) {
+                Loki::TrueHUDControl::GetSingleton()->g_trueHUD->
                     FlashActorSpecialBar(SKSE::GetPluginHandle(), a_this->GetHandle(), true);
             }
             a_this->NotifyAnimationGraph(str);
@@ -411,8 +447,8 @@ bool Loki_PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk) 
             else {
                 str = ptr->poiseLargestBwd;
             }
-            if (Loki_TrueHUDControl::GetSingleton()->g_trueHUD) {
-                Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
+            if (Loki::TrueHUDControl::GetSingleton()->g_trueHUD) {
+                Loki::TrueHUDControl::GetSingleton()->g_trueHUD->
                     FlashActorSpecialBar(SKSE::GetPluginHandle(), a_this->GetHandle(), true);
             }
             a_this->NotifyAnimationGraph(str);
@@ -423,15 +459,15 @@ bool Loki_PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk) 
 
 }
 
-float Loki_PoiseMod::GetSubmergedLevel(RE::Actor* a_actor, float a_zPos, RE::TESObjectCELL* a_cell) {
+float Loki::PoiseMod::GetSubmergedLevel(RE::Actor* a_actor, float a_zPos, RE::TESObjectCELL* a_cell) {
 
-    auto ptr = Loki_PoiseMod::GetSingleton();
+    auto ptr = Loki::PoiseMod::GetSingleton();
 
     auto avHealth = a_actor->GetActorValue(RE::ActorValue::kHealth);
     if (avHealth <= 0.05f || !ptr->PoiseRegenEnabled) { return _GetSubmergedLevel(a_actor, a_zPos, a_cell); }
 
     if (!a_actor->HasMagicEffect(ptr->poiseDelayEffect)) {
-        auto a_result = (int)Loki_PoiseMod::CalculateMaxPoise(a_actor);
+        auto a_result = (int)Loki::PoiseMod::CalculateMaxPoise(a_actor);
         a_actor->pad0EC = a_result;
         if (a_actor->pad0EC > 100000) { a_actor->pad0EC = 0.00f; }
     }
@@ -440,9 +476,9 @@ float Loki_PoiseMod::GetSubmergedLevel(RE::Actor* a_actor, float a_zPos, RE::TES
 
 }
 
-void Loki_PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Actor* a_attacker, float a_damage) {
+void Loki::PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Actor* a_attacker, float a_damage) {
 
-    auto ptr = Loki_PoiseMod::GetSingleton();
+    auto ptr = Loki::PoiseMod::GetSingleton();
     auto avHealth = a_char->GetActorValue(RE::ActorValue::kHealth);
     auto avParalysis = a_char->GetActorValue(RE::ActorValue::kParalysis);
     if (!a_char || !a_attacker || avHealth <= 0.05f || a_char->IsInKillMove() || avParalysis || !ptr->PoiseSystemEnabled) { return _HandleHealthDamage_Character(a_char, a_attacker, a_damage); }
@@ -485,7 +521,7 @@ void Loki_PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Acto
             auto a = a_char->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant);
             a->Cast(ptr->poiseDelaySpell, false, a_char, 1.0f, false, 0.0f, 0);
 
-            float maxPoise = Loki_PoiseMod::CalculateMaxPoise(a_char);
+            float maxPoise = Loki::PoiseMod::CalculateMaxPoise(a_char);
             auto prcnt25 = maxPoise * 0.25f;
             auto prcnt35 = maxPoise * 0.35f;
             auto prcnt50 = maxPoise * 0.50f;
@@ -494,8 +530,8 @@ void Loki_PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Acto
             a_char->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
             static RE::BSFixedString str = NULL;
             if ((float)a_char->pad0EC <= 0.00f) {
-                if (Loki_TrueHUDControl::GetSingleton()->g_trueHUD) {
-                    Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
+                if (Loki::TrueHUDControl::GetSingleton()->g_trueHUD) {
+                    Loki::TrueHUDControl::GetSingleton()->g_trueHUD->
                         FlashActorSpecialBar(SKSE::GetPluginHandle(), a_char->GetHandle(), false);
                 }
                 a_char->pad0EC = maxPoise; // remember earlier when we calculated max poise health?
@@ -598,9 +634,9 @@ void Loki_PoiseMod::HandleHealthDamage_Character(RE::Character* a_char, RE::Acto
 
 }
 
-void Loki_PoiseMod::HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_playerChar, RE::Actor* a_attacker, float a_damage) {
+void Loki::PoiseMod::HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_playerChar, RE::Actor* a_attacker, float a_damage) {
 
-    auto ptr = Loki_PoiseMod::GetSingleton();
+    auto ptr = Loki::PoiseMod::GetSingleton();
     auto avHealth = a_playerChar->GetActorValue(RE::ActorValue::kHealth);
     auto avParalysis = a_playerChar->GetActorValue(RE::ActorValue::kParalysis);
     if (!a_playerChar || !a_attacker || avHealth <= 0.05f || a_playerChar->IsInKillMove() || avParalysis || !ptr->PoiseSystemEnabled) { return _HandleHealthDamage_PlayerCharacter(a_playerChar, a_attacker, a_damage); }
@@ -643,7 +679,7 @@ void Loki_PoiseMod::HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_pl
             auto a = a_playerChar->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant);
             a->Cast(ptr->poiseDelaySpell, false, a_playerChar, 1.0f, false, 0.0f, 0);
 
-            float maxPoise = Loki_PoiseMod::CalculateMaxPoise(a_playerChar);
+            float maxPoise = Loki::PoiseMod::CalculateMaxPoise(a_playerChar);
             auto prcnt25 = maxPoise * 0.25f;
             auto prcnt35 = maxPoise * 0.35f;
             auto prcnt50 = maxPoise * 0.50f;
@@ -652,8 +688,8 @@ void Loki_PoiseMod::HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_pl
             a_playerChar->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
             static RE::BSFixedString str = NULL;
             if ((float)a_playerChar->pad0EC <= 0.00f) {
-                if (Loki_TrueHUDControl::GetSingleton()->g_trueHUD) {
-                    Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
+                if (Loki::TrueHUDControl::GetSingleton()->g_trueHUD) {
+                    Loki::TrueHUDControl::GetSingleton()->g_trueHUD->
                         FlashActorSpecialBar(SKSE::GetPluginHandle(), a_playerChar->GetHandle(), false);
                 }
                 a_playerChar->pad0EC = maxPoise; // remember earlier when we calculated max poise health?
@@ -756,11 +792,11 @@ void Loki_PoiseMod::HandleHealthDamage_PlayerCharacter(RE::PlayerCharacter* a_pl
 
 }
 
-void Loki_PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData) {
+void Loki::PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData) {
 
     RE::FormID kLurker = 0x14495;
 
-    auto ptr = Loki_PoiseMod::GetSingleton();
+    auto ptr = Loki::PoiseMod::GetSingleton();
 
     using HitFlag = RE::HitData::Flag;
 
@@ -768,7 +804,7 @@ void Loki_PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData) 
     auto avParalysis = a_actor->GetActorValue(RE::ActorValue::kParalysis);
     if (avHealth <= 0.05f || a_actor->IsInKillMove() || avParalysis || !ptr->PoiseSystemEnabled) { return _ProcessHitEvent(a_actor, a_hitData); }
 
-    float dmg = Loki_PoiseMod::CalculatePoiseDamage(a_hitData, a_actor);
+    float dmg = Loki::PoiseMod::CalculatePoiseDamage(a_hitData, a_actor);
 
     if (dmg <= 0.00f) dmg = 0.00f;
     a_actor->pad0EC -= (int)dmg;  // there was some bullshit with integer underflow
@@ -777,12 +813,12 @@ void Loki_PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData) 
         RE::ConsoleLog::GetSingleton()->Print("---");
         RE::ConsoleLog::GetSingleton()->Print("Aggessor's Weight: %f", a_hitData.aggressor.get()->GetWeight());
         RE::ConsoleLog::GetSingleton()->Print("Aggressor's Current Poise Health: %d", a_hitData.aggressor.get()->pad0EC);
-        RE::ConsoleLog::GetSingleton()->Print("Aggresssor's Max Poise Health: %f", Loki_PoiseMod::CalculateMaxPoise(a_hitData.aggressor.get().get()));
+        RE::ConsoleLog::GetSingleton()->Print("Aggresssor's Max Poise Health: %f", Loki::PoiseMod::CalculateMaxPoise(a_hitData.aggressor.get().get()));
         RE::ConsoleLog::GetSingleton()->Print("Aggressor's Poise Damage: %f", dmg);
         RE::ConsoleLog::GetSingleton()->Print("-");
         RE::ConsoleLog::GetSingleton()->Print("Victim's Weight: %f", a_actor->GetWeight());
         RE::ConsoleLog::GetSingleton()->Print("Victim's Current Poise Health: %d", a_actor->pad0EC);
-        RE::ConsoleLog::GetSingleton()->Print("Victim's Max Poise Health %f", Loki_PoiseMod::CalculateMaxPoise(a_actor));
+        RE::ConsoleLog::GetSingleton()->Print("Victim's Max Poise Health %f", Loki::PoiseMod::CalculateMaxPoise(a_actor));
         RE::ConsoleLog::GetSingleton()->Print("---");
     }
 
@@ -794,7 +830,7 @@ void Loki_PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData) 
     auto a = a_actor->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant);
     a->Cast(ptr->poiseDelaySpell, false, a_actor, 1.0f, false, 0.0f, 0);
 
-    float maxPoise = Loki_PoiseMod::CalculateMaxPoise(a_actor);
+    float maxPoise = Loki::PoiseMod::CalculateMaxPoise(a_actor);
     auto prcnt25 = maxPoise * 0.25f;
     auto prcnt35 = maxPoise * 0.35f;
     auto prcnt50 = maxPoise * 0.50f;
@@ -805,8 +841,8 @@ void Loki_PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData) 
     if ((float)a_actor->pad0EC <= 0.00f) {
         a_actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
         a_actor->pad0EC = maxPoise; // remember earlier when we calculated max poise health?
-        if (Loki_TrueHUDControl::GetSingleton()->g_trueHUD) {
-            Loki_TrueHUDControl::GetSingleton()->g_trueHUD->
+        if (Loki::TrueHUDControl::GetSingleton()->g_trueHUD) {
+            Loki::TrueHUDControl::GetSingleton()->g_trueHUD->
                 FlashActorSpecialBar(SKSE::GetPluginHandle(), a_actor->GetHandle(), false);
         }
         if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh

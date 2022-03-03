@@ -1,8 +1,8 @@
 ﻿#include "C:/dev/ExamplePlugin-CommonLibSSE/build/simpleini-master/SimpleIni.h"
-#include "Loki_PoiseMod.h"
+#include "POISE/PoiseMod.h"
+#include "POISE/TrueHUDControl.h"
+#include "POISE/TrueHUDAPI.h"
 #include "Loki_PluginTools.h"
-#include "Loki_TrueHUDControl.h"
-#include "TrueHUDAPI.h"
 
 const SKSE::MessagingInterface* g_messaging2 = nullptr;
 
@@ -95,7 +95,7 @@ namespace PoiseMod {  // Papyrus Functions
         if (!a_actor) {
             return -1.00f;
         } else {
-            auto ptr = Loki_PoiseMod::GetSingleton();
+            auto ptr = Loki::PoiseMod::GetSingleton();
 
             float a_result = (a_actor->equippedWeight + (a_actor->GetBaseActorValue(RE::ActorValue::kHeavyArmor) * 0.20f));
 
@@ -108,14 +108,14 @@ namespace PoiseMod {  // Papyrus Functions
             RE::BSFixedString buffKeyword = "MaxPoiseBuff";
             RE::BSFixedString nerfKeyword = "MaxPoiseNerf";
 
-            auto hasBuff = Loki_PluginTools::ActorHasEffectWithKeyword(a_actor, buffKeyword);
+            auto hasBuff = Loki::PluginTools::ActorHasEffectWithKeyword(a_actor, buffKeyword);
             if (hasBuff) {
                 logger::info("health buff keyword detected");
                 auto buffPercent = hasBuff->effectItem.magnitude / 100.00f; // convert to percentage
                 auto resultingBuff = (a_result * buffPercent);
                 a_result += resultingBuff;
             }
-            auto hasNerf = Loki_PluginTools::ActorHasEffectWithKeyword(a_actor, nerfKeyword);
+            auto hasNerf = Loki::PluginTools::ActorHasEffectWithKeyword(a_actor, nerfKeyword);
             if (hasNerf) {
                 logger::info("health nerf keyword detected");
                 auto nerfPercent = hasNerf->effectItem.magnitude / 100.00f;
@@ -160,11 +160,11 @@ static void MessageHandler(SKSE::MessagingInterface::Message* message) {
 
     switch (message->type) {
     case SKSE::MessagingInterface::kDataLoaded: {
-        auto ptr = Loki_TrueHUDControl::GetSingleton();
+        auto ptr = Loki::TrueHUDControl::GetSingleton();
         if (ptr->TrueHUDBars) {
             if (ptr->g_trueHUD) {
                 if (ptr->g_trueHUD->RequestSpecialResourceBarsControl(SKSE::GetPluginHandle()) == TRUEHUD_API::APIResult::OK) {
-                    ptr->g_trueHUD->RegisterSpecialResourceFunctions(SKSE::GetPluginHandle(), Loki_TrueHUDControl::GetCurrentSpecial, Loki_TrueHUDControl::GetMaxSpecial, true);
+                    ptr->g_trueHUD->RegisterSpecialResourceFunctions(SKSE::GetPluginHandle(), Loki::TrueHUDControl::GetCurrentSpecial, Loki::TrueHUDControl::GetMaxSpecial, true);
                 }
             }
         }
@@ -178,7 +178,7 @@ static void MessageHandler(SKSE::MessagingInterface::Message* message) {
         if (!TRUEHUD_API::RegisterInterfaceLoaderCallback(SKSE::GetMessagingInterface(),
             [](void* interfaceInstance, TRUEHUD_API::InterfaceVersion interfaceVersion) {
             if (interfaceVersion == TRUEHUD_API::InterfaceVersion::V1) {
-                Loki_TrueHUDControl::GetSingleton()->g_trueHUD = reinterpret_cast<TRUEHUD_API::IVTrueHUD1*>(interfaceInstance);
+                Loki::TrueHUDControl::GetSingleton()->g_trueHUD = reinterpret_cast<TRUEHUD_API::IVTrueHUD1*>(interfaceInstance);
                 logger::info("Obtained TrueHUD API");
             } else {
                 logger::error("Unable to acquire requested TrueHUD API interface version");
@@ -214,9 +214,10 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface * a_
     }
     SKSE::GetPapyrusInterface()->Register(PoiseMod::RegisterFuncsForSKSE);  // register papyrus functions
 
-    Loki_PoiseMod::InstallStaggerHook();
-    Loki_PoiseMod::InstallWaterHook();
-    Loki_PoiseMod::InstallIsActorKnockdownHook();
+    Loki::PoiseMod::InstallStaggerHook();
+    Loki::PoiseMod::InstallWaterHook();
+    Loki::PoiseMod::InstallIsActorKnockdownHook();
+    Loki::PoiseMod::InstallMagicEventSink();
     //Loki_PoiseMod::InstallVFuncHooks();
 
     return true;

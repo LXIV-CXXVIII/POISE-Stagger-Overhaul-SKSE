@@ -128,13 +128,13 @@ set(headers
 set(sources
 	src/main.cpp
 	src/PCH.cpp
+	src/POISE/PoiseMod.cpp
+	src/POISE/PoiseMod.h
+	src/POISE/TrueHUDControl.cpp
+	src/POISE/TrueHUDControl.h
+	src/POISE/TrueHUDAPI.h
 	src/Loki_PluginTools.cpp
 	src/Loki_PluginTools.h
-	src/Loki_PoiseMod.cpp
-	src/Loki_PoiseMod.h
-	src/Loki_TrueHUDControl.cpp
-	src/Loki_TrueHUDControl.h
-	src/TrueHUDAPI.h
 
 )
 
