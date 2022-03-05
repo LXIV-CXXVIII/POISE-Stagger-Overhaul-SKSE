@@ -100,8 +100,19 @@ namespace PoiseMod {  // Papyrus Functions
             float a_result = (a_actor->equippedWeight + (a_actor->GetBaseActorValue(RE::ActorValue::kHeavyArmor) * 0.20f));
 
             for (auto idx : ptr->poiseRaceMap) {
-                if (a_actor && (a_actor->race->formID == idx.first->formID)) {
-                    a_result = a_actor->GetWeight() * idx.second[0];
+                if (a_actor) {
+                    RE::TESRace* a_actorRace = a_actor->race;
+                    RE::TESRace* a_mapRace = idx.first;
+                    if (a_actorRace && a_mapRace) {
+                        if (a_actorRace->formID == a_mapRace->formID) {
+                            if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) {
+                                a_result = idx.second[1];
+                            } else {
+                                a_result *= idx.second[1];
+                            }
+                            break;
+                        }
+                    }
                 }
             }
 
