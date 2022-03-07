@@ -1,4 +1,4 @@
-﻿#include "C:/dev/ExamplePlugin-CommonLibSSE/build/simpleini-master/SimpleIni.h"
+﻿#include "C:/dev/simpleini-master/SimpleIni.h"
 #include "POISE/PoiseMod.h"
 #include "POISE/TrueHUDControl.h"
 #include "POISE/TrueHUDAPI.h"
