@@ -40,7 +40,7 @@ bool Loki::PluginTools::WeaponHasKeyword(RE::TESObjectWEAP* a_weap, RE::BSFixedS
 /*
     Experimenting with keywords
 */
-RE::Effect* Loki::PluginTools::ActorHasEffectWithKeyword(RE::Actor* a_actor, RE::BSFixedString a_editorID) {
+RE::Effect* Loki::PluginTools::ActorHasEffectWithKeyword(RE::Actor* a_actor, RE::FormID a_formID) {
 
     auto activeEffect = a_actor->GetActiveEffectList();
     if (activeEffect) {
@@ -56,7 +56,7 @@ RE::Effect* Loki::PluginTools::ActorHasEffectWithKeyword(RE::Actor* a_actor, RE:
                 return NULL;
             }
             for (std::uint32_t idx = 0; idx < ae->effect->baseEffect->numKeywords; ++idx) {
-                if (keywords[idx] && keywords[idx]->formEditorID == a_editorID) {
+                if (keywords[idx] && keywords[idx]->formID == a_formID) {
                     return ae->effect ? ae->effect : nullptr;
                 }
             }

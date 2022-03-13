@@ -116,17 +116,14 @@ namespace PoiseMod {  // Papyrus Functions
                 }
             }
 
-            RE::BSFixedString buffKeyword = "MaxPoiseBuff";
-            RE::BSFixedString nerfKeyword = "MaxPoiseNerf";
-
-            auto hasBuff = Loki::PluginTools::ActorHasEffectWithKeyword(a_actor, buffKeyword);
+            auto hasBuff = Loki::PluginTools::ActorHasEffectWithKeyword(a_actor, ptr->PoiseHPBuff->formID);
             if (hasBuff) {
                 logger::info("health buff keyword detected");
                 auto buffPercent = hasBuff->effectItem.magnitude / 100.00f; // convert to percentage
                 auto resultingBuff = (a_result * buffPercent);
                 a_result += resultingBuff;
             }
-            auto hasNerf = Loki::PluginTools::ActorHasEffectWithKeyword(a_actor, nerfKeyword);
+            auto hasNerf = Loki::PluginTools::ActorHasEffectWithKeyword(a_actor, ptr->PoiseHPNerf->formID);
             if (hasNerf) {
                 logger::info("health nerf keyword detected");
                 auto nerfPercent = hasNerf->effectItem.magnitude / 100.00f;

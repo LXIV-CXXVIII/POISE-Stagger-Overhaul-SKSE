@@ -18,7 +18,7 @@ void Loki::PoiseMod::ReadPoiseTOML() {
                 auto& raceTable = *elem.as_table();
 
                 auto formID = raceTable["FormID"].value<RE::FormID>();
-                logger::info("FormID -> {x}", *formID);
+                logger::info("FormID -> {0:#x}", *formID);
                 auto plugin = raceTable["Plugin"].value<std::string_view>();
                 logger::info("plugin -> {}", *plugin);
                 auto race = dataHandle->LookupForm<RE::TESRace>(*formID, *plugin);
@@ -79,49 +79,49 @@ Loki::PoiseMod::PoiseMod() {
 
     this->ConsoleInfoDump = ini.GetBoolValue("DEBUG", "bConsoleInfoDump", false);
 
-    this->PoiseSystemEnabled = ini.GetBoolValue("MAIN", "bPoiseSystem", false);
+    this->PoiseSystemEnabled    = ini.GetBoolValue("MAIN", "bPoiseSystem", false);
     this->PlayerRagdollReplacer = ini.GetBoolValue("MAIN", "bPlayerRagdollReplacer", false);
-    this->NPCRagdollReplacer = ini.GetBoolValue("MAIN", "bNPCRagdollReplacer", false);
-    this->PoiseRegenEnabled = ini.GetBoolValue("MAIN", "bPoiseRegen", false);
-    this->TrueHUDBars = ini.GetBoolValue("MAIN", "bTrueHUDBars", false);
+    this->NPCRagdollReplacer    = ini.GetBoolValue("MAIN", "bNPCRagdollReplacer", false);
+    this->PoiseRegenEnabled     = ini.GetBoolValue("MAIN", "bPoiseRegen", false);
+    this->TrueHUDBars           = ini.GetBoolValue("MAIN", "bTrueHUDBars", false);
 
     this->PowerAttackMult = ini.GetDoubleValue("WEAPON", "fPowerAttackMult", -1.00f);
-    this->BlockedMult = ini.GetDoubleValue("WEAPON", "fBlockedMult", -1.00f);
-    this->BashMult = ini.GetDoubleValue("WEAPON", "fBashMult", -1.00f);
+    this->BlockedMult     = ini.GetDoubleValue("WEAPON", "fBlockedMult", -1.00f);
+    this->BashMult        = ini.GetDoubleValue("WEAPON", "fBashMult", -1.00f);
     this->HyperArmourMult = ini.GetDoubleValue("WEAPON", "fHyperArmourMult", -1.00f);
-    this->BowMult = ini.GetDoubleValue("WEAPON", "fBowMult", -1.00f);
-    this->CrossbowMult = ini.GetDoubleValue("WEAPON", "fCrossbowMult", -1.00f);
-    this->Hand2Hand = ini.GetDoubleValue("WEAPON", "fHand2HandMult", -1.00f);
-    this->OneHandAxe = ini.GetDoubleValue("WEAPON", "fOneHandAxeMult", -1.00f);
-    this->OneHandDagger = ini.GetDoubleValue("WEAPON", "fOneHandDaggerMult", -1.00f);
-    this->OneHandMace = ini.GetDoubleValue("WEAPON", "fOneHandMaceMult", -1.00f);
-    this->OneHandSword = ini.GetDoubleValue("WEAPON", "fOneHandSwordMult", -1.00f);
-    this->TwoHandAxe = ini.GetDoubleValue("WEAPON", "fTwoHandAxeMult", -1.00f);
-    this->TwoHandSword = ini.GetDoubleValue("WEAPON", "fTwoHandSwordMult", -1.00f);
+    this->BowMult         = ini.GetDoubleValue("WEAPON", "fBowMult", -1.00f);
+    this->CrossbowMult    = ini.GetDoubleValue("WEAPON", "fCrossbowMult", -1.00f);
+    this->Hand2Hand       = ini.GetDoubleValue("WEAPON", "fHand2HandMult", -1.00f);
+    this->OneHandAxe      = ini.GetDoubleValue("WEAPON", "fOneHandAxeMult", -1.00f);
+    this->OneHandDagger   = ini.GetDoubleValue("WEAPON", "fOneHandDaggerMult", -1.00f);
+    this->OneHandMace     = ini.GetDoubleValue("WEAPON", "fOneHandMaceMult", -1.00f);
+    this->OneHandSword    = ini.GetDoubleValue("WEAPON", "fOneHandSwordMult", -1.00f);
+    this->TwoHandAxe      = ini.GetDoubleValue("WEAPON", "fTwoHandAxeMult", -1.00f);
+    this->TwoHandSword    = ini.GetDoubleValue("WEAPON", "fTwoHandSwordMult", -1.00f);
 
-    this->RapierMult = ini.GetDoubleValue("ANIMATED_ARMOURY", "fRapierMult", -1.00f);
-    this->PikeMult = ini.GetDoubleValue("ANIMATED_ARMOURY", "fPikeMult", -1.00f);
-    this->SpearMult = ini.GetDoubleValue("ANIMATED_ARMOURY", "fSpearMult", -1.00f);
-    this->HalberdMult = ini.GetDoubleValue("ANIMATED_ARMOURY", "fHalberdMult", -1.00f);
+    this->RapierMult   = ini.GetDoubleValue("ANIMATED_ARMOURY", "fRapierMult", -1.00f);
+    this->PikeMult     = ini.GetDoubleValue("ANIMATED_ARMOURY", "fPikeMult", -1.00f);
+    this->SpearMult    = ini.GetDoubleValue("ANIMATED_ARMOURY", "fSpearMult", -1.00f);
+    this->HalberdMult  = ini.GetDoubleValue("ANIMATED_ARMOURY", "fHalberdMult", -1.00f);
     this->QtrStaffMult = ini.GetDoubleValue("ANIMATED_ARMOURY", "fQtrStaffMult", -1.00f);
-    this->CaestusMult = ini.GetDoubleValue("ANIMATED_ARMOURY", "fCaestusMult", -1.00f);
-    this->ClawMult = ini.GetDoubleValue("ANIMATED_ARMOURY", "fClawMult", -1.00f);
-    this->WhipMult = ini.GetDoubleValue("ANIMATED_ARMOURY", "fWhipMult", -1.00f);
+    this->CaestusMult  = ini.GetDoubleValue("ANIMATED_ARMOURY", "fCaestusMult", -1.00f);
+    this->ClawMult     = ini.GetDoubleValue("ANIMATED_ARMOURY", "fClawMult", -1.00f);
+    this->WhipMult     = ini.GetDoubleValue("ANIMATED_ARMOURY", "fWhipMult", -1.00f);
 
     if (auto dataHandle = RE::TESDataHandler::GetSingleton(); dataHandle) {
-        poiseDelaySpell = dataHandle->LookupForm<RE::SpellItem>(0xD62, "loki_POISE.esp");
+        poiseDelaySpell  = dataHandle->LookupForm<RE::SpellItem>(0xD62, "loki_POISE.esp");
         poiseDelayEffect = dataHandle->LookupForm<RE::EffectSetting>(0xD63, "loki_POISE.esp");
-        PoiseDmgNerf = dataHandle->LookupForm<RE::BGSKeyword>(0x433C, "loki_POISE.esp");
-        PoiseDmgBuff = dataHandle->LookupForm<RE::BGSKeyword>(0x433B, "loki_POISE.esp");
-        PoiseHPNerf = dataHandle->LookupForm<RE::BGSKeyword>(0x433A, "loki_POISE.esp");
-        PoiseHPBuff = dataHandle->LookupForm<RE::BGSKeyword>(0x4339, "loki_POISE.esp");
+        PoiseDmgNerf     = dataHandle->LookupForm<RE::BGSKeyword>(0x433C, "loki_POISE.esp");
+        PoiseDmgBuff     = dataHandle->LookupForm<RE::BGSKeyword>(0x433B, "loki_POISE.esp");
+        PoiseHPNerf      = dataHandle->LookupForm<RE::BGSKeyword>(0x433A, "loki_POISE.esp");
+        PoiseHPBuff      = dataHandle->LookupForm<RE::BGSKeyword>(0x4339, "loki_POISE.esp");
 
         kCreature = dataHandle->LookupForm<RE::BGSKeyword>(0x13795, "Skyrim.esm");
-        kDragon = dataHandle->LookupForm<RE::BGSKeyword>(0x35d59, "Skyrim.esm");
-        kGiant = dataHandle->LookupForm<RE::BGSKeyword>(0x10E984, "Skyrim.esm");
-        kGhost = dataHandle->LookupForm<RE::BGSKeyword>(0xd205e, "Skyrim.esm");
-        kDwarven = dataHandle->LookupForm<RE::BGSKeyword>(0x1397a, "Skyrim.esm");
-        kTroll = dataHandle->LookupForm<RE::BGSKeyword>(0xf5d16, "Skyrim.esm");
+        kDragon   = dataHandle->LookupForm<RE::BGSKeyword>(0x35d59, "Skyrim.esm");
+        kGiant    = dataHandle->LookupForm<RE::BGSKeyword>(0x10E984, "Skyrim.esm");
+        kGhost    = dataHandle->LookupForm<RE::BGSKeyword>(0xd205e, "Skyrim.esm");
+        kDwarven  = dataHandle->LookupForm<RE::BGSKeyword>(0x1397a, "Skyrim.esm");
+        kTroll    = dataHandle->LookupForm<RE::BGSKeyword>(0xf5d16, "Skyrim.esm");
         WeapMaterialSilver = dataHandle->LookupForm<RE::BGSKeyword>(0x10aa1a, "Skyrim.esm");
     }
 
@@ -348,6 +348,7 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
 
     auto weap = a_hitData.weapon;
     float a_result = 0.00f;
+    bool isSilver = false;
     if (!weap) {
         auto attacker = a_hitData.aggressor.get();
         if (!attacker) {
@@ -367,71 +368,74 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
         a_result = weap->weight;
 
         switch (weap->weaponData.animationType.get()) {
-        case RE::WEAPON_TYPE::kBow:
-            a_result *= ptr->BowMult;
-            break;
-
-        case RE::WEAPON_TYPE::kCrossbow:
-            a_result *= ptr->CrossbowMult;
-            break;
-
-        case RE::WEAPON_TYPE::kHandToHandMelee:
-            if (weap->HasKeyword(0x19AAB3)) {
-                a_result *= ptr->CaestusMult;
+        
+            case RE::WEAPON_TYPE::kBow: {
+                a_result *= ptr->BowMult;
                 break;
             }
-            if (weap->HasKeyword(0x19AAB4)) {
-                a_result *= ptr->ClawMult;
+            case RE::WEAPON_TYPE::kCrossbow: {
+                a_result *= ptr->CrossbowMult;
                 break;
             }
-            a_result *= ptr->Hand2Hand;
-            break;
-
-        case RE::WEAPON_TYPE::kOneHandAxe:
-            a_result *= ptr->OneHandAxe;
-            break;
-
-        case RE::WEAPON_TYPE::kOneHandDagger:
-            a_result *= ptr->OneHandDagger;
-            break;
-
-        case RE::WEAPON_TYPE::kOneHandMace:
-            a_result *= ptr->OneHandMace;
-            break;
-
-        case RE::WEAPON_TYPE::kOneHandSword:
-            if (weap->HasKeyword(0x801)) {
-                a_result *= ptr->RapierMult;
+            case RE::WEAPON_TYPE::kHandToHandMelee: {
+                if (weap->HasKeyword(0x19AAB3)) {
+                    a_result *= ptr->CaestusMult;
+                    break;
+                }
+                if (weap->HasKeyword(0x19AAB4)) {
+                    a_result *= ptr->ClawMult;
+                    break;
+                }
+                a_result *= ptr->Hand2Hand;
                 break;
             }
-            a_result *= ptr->OneHandSword;
-            break;
-
-        case RE::WEAPON_TYPE::kTwoHandAxe:
-            if (weap->HasKeyword(0xE4580)) {
-                a_result *= ptr->HalberdMult;
+            case RE::WEAPON_TYPE::kOneHandAxe: {
+                a_result *= ptr->OneHandAxe;
                 break;
             }
-            if (weap->HasKeyword(0xE4581)) {
-                a_result *= ptr->QtrStaffMult;
+            case RE::WEAPON_TYPE::kOneHandDagger: {
+                a_result *= ptr->OneHandDagger;
                 break;
             }
-            a_result *= ptr->TwoHandAxe;
-            break;
-
-        case RE::WEAPON_TYPE::kTwoHandSword:
-            if (weap->HasKeyword(0xE457E)) {
-                a_result *= ptr->PikeMult;
+            case RE::WEAPON_TYPE::kOneHandMace: {
+                a_result *= ptr->OneHandMace;
                 break;
             }
-            if (weap->HasKeyword(0xE457F)) {
-                a_result *= ptr->SpearMult;
+            case RE::WEAPON_TYPE::kOneHandSword: {
+                if (weap->HasKeyword(0x801)) {
+                    a_result *= ptr->RapierMult;
+                    break;
+                }
+                a_result *= ptr->OneHandSword;
                 break;
             }
-            a_result *= ptr->TwoHandSword;
-            break;
-
+            case RE::WEAPON_TYPE::kTwoHandAxe: {
+                if (weap->HasKeyword(0xE4580)) {
+                    a_result *= ptr->HalberdMult;
+                    break;
+                }
+                if (weap->HasKeyword(0xE4581)) {
+                    a_result *= ptr->QtrStaffMult;
+                    break;
+                }
+                a_result *= ptr->TwoHandAxe;
+                break;
+            }
+            case RE::WEAPON_TYPE::kTwoHandSword: {
+                if (weap->HasKeyword(0xE457E)) {
+                    a_result *= ptr->PikeMult;
+                    break;
+                }
+                if (weap->HasKeyword(0xE457F)) {
+                    a_result *= ptr->SpearMult;
+                    break;
+                }
+                a_result *= ptr->TwoHandSword;
+                break;
+            }
+        
         }
+        if (weap->HasKeyword(ptr->WeapMaterialSilver)) isSilver = true;
     }
 
     for (auto idx : ptr->poiseRaceMap) {
@@ -452,17 +456,14 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
         }
     }
 
-    RE::BSFixedString buffKeyword = "PoiseDmgBuff";
-    RE::BSFixedString nerfKeyword = "PoiseDmgNerf";
-
-    auto hasBuff = PluginTools::ActorHasEffectWithKeyword(aggressor, buffKeyword);
+    auto hasBuff = PluginTools::ActorHasEffectWithKeyword(aggressor, ptr->PoiseDmgBuff->formID);
     if (hasBuff) {
         logger::info("damage buff keyword detected");
         auto buffPercent = hasBuff->effectItem.magnitude / 100.00f; // convert to percentage
         auto resultingBuff = (a_result * buffPercent);
         a_result += resultingBuff; // aggressor has buff that makes them do more poise damage
     }
-    auto hasNerf = PluginTools::ActorHasEffectWithKeyword(aggressor, nerfKeyword);
+    auto hasNerf = PluginTools::ActorHasEffectWithKeyword(aggressor, ptr->PoiseDmgNerf->formID);
     if (hasNerf) {
         logger::info("damage nerf keyword detected");
         auto nerfPercent = hasNerf->effectItem.magnitude / 100.00f;
@@ -483,7 +484,7 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
         a_result *= ptr->HyperArmourMult;
     }
 
-    if ((a_actor->HasKeyword(ptr->kGhost) && !weap->HasKeyword(ptr->WeapMaterialSilver))) {
+    if (a_actor->HasKeyword(ptr->kGhost) && !isSilver) {
         a_result = 0.00f;
     }
 
@@ -518,14 +519,14 @@ float Loki::PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
     RE::BSFixedString buffKeyword = "MaxPoiseBuff";
     RE::BSFixedString nerfKeyword = "MaxPoiseNerf";
 
-    auto hasBuff = PluginTools::ActorHasEffectWithKeyword(a_actor, buffKeyword);
+    auto hasBuff = PluginTools::ActorHasEffectWithKeyword(a_actor, ptr->PoiseHPBuff->formID);
     if (hasBuff) {
         logger::info("health buff keyword detected");
         auto buffPercent = hasBuff->effectItem.magnitude / 100.00f; // convert to percentage
         auto resultingBuff = (a_result * buffPercent);
         a_result += resultingBuff;
     }
-    auto hasNerf = PluginTools::ActorHasEffectWithKeyword(a_actor, nerfKeyword);
+    auto hasNerf = PluginTools::ActorHasEffectWithKeyword(a_actor, ptr->PoiseHPNerf->formID);
     if (hasNerf) {
         logger::info("health nerf keyword detected");
         auto nerfPercent = hasNerf->effectItem.magnitude / 100.00f;
