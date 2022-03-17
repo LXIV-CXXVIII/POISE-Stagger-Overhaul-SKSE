@@ -350,12 +350,11 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
     float a_result = 0.00f;
     bool isSilver = false;
     if (!weap) {
-        auto attacker = a_hitData.aggressor.get();
-        if (!attacker) {
+        if (!aggressor) {
             a_result = 8.00f;
         }
         else {
-            auto attackerWeap = attacker->GetAttackingWeapon();
+            auto attackerWeap = aggressor->GetAttackingWeapon();
             if (!attackerWeap) {
                 a_result = 8.00f;
             }
@@ -617,7 +616,10 @@ void Loki::PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData)
 
     float dmg = CalculatePoiseDamage(a_hitData, a_actor);
 
-    if (dmg <= 0.00f) dmg = 0.00f;
+    if (dmg <= 0.00f) {
+        logger::info("Damage was negative... somehow?");
+        dmg = 0.00f;
+    }
     a_actor->pad0EC -= (int)dmg;  // there was some bullshit with integer underflow
     if (a_actor->pad0EC > 100000) a_actor->pad0EC = 0.00f;  // this fixed it...
     if (ptr->ConsoleInfoDump) {
