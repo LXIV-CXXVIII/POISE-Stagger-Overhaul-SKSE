@@ -546,41 +546,35 @@ bool Loki::PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk)
         return _IsActorKnockdown(a_this, a_unk);
     }
     static RE::BSFixedString str = NULL;
-    if (a_this->IsPlayerRef()) {
-        if (ptr->PlayerRagdollReplacer) {
-            float knockdownDirection = 0.00f;
-            a_this->GetGraphVariableFloat("staggerDirection", knockdownDirection);
-            if (knockdownDirection > 0.25f && knockdownDirection < 0.75f) {
-                str = ptr->poiseLargestFwd;
-            } 
-            else {
-                str = ptr->poiseLargestBwd;
-            }
-            if (TrueHUDControl::GetSingleton()->g_trueHUD) {
-                TrueHUDControl::GetSingleton()->g_trueHUD->
-                    FlashActorSpecialBar(SKSE::GetPluginHandle(), a_this->GetHandle(), true);
-            }
-            a_this->NotifyAnimationGraph(str);
-            return false;
+    if (a_this->IsPlayerRef() && ptr->PlayerRagdollReplacer) {
+        float knockdownDirection = 0.00f;
+        a_this->GetGraphVariableFloat("staggerDirection", knockdownDirection);
+        if (knockdownDirection > 0.25f && knockdownDirection < 0.75f) {
+            str = ptr->poiseLargestFwd;
+        } else {
+            str = ptr->poiseLargestBwd;
         }
+        if (TrueHUDControl::GetSingleton()->g_trueHUD) {
+            TrueHUDControl::GetSingleton()->g_trueHUD->
+                FlashActorSpecialBar(SKSE::GetPluginHandle(), a_this->GetHandle(), true);
+        }
+        a_this->NotifyAnimationGraph(str);
+        return false;
     } 
-    else {
-        if (ptr->NPCRagdollReplacer) {
-            float knockdownDirection = 0.00f;
-            a_this->GetGraphVariableFloat("staggerDirection", knockdownDirection);
-            if (knockdownDirection > 0.25f && knockdownDirection < 0.75f) {
-                str = ptr->poiseLargestFwd;
-            } 
-            else {
-                str = ptr->poiseLargestBwd;
-            }
-            if (TrueHUDControl::GetSingleton()->g_trueHUD) {
-                TrueHUDControl::GetSingleton()->g_trueHUD->
-                    FlashActorSpecialBar(SKSE::GetPluginHandle(), a_this->GetHandle(), true);
-            }
-            a_this->NotifyAnimationGraph(str);
-            return false;
+    else if (!a_this->IsPlayerRef() && ptr->NPCRagdollReplacer) {
+        float knockdownDirection = 0.00f;
+        a_this->GetGraphVariableFloat("staggerDirection", knockdownDirection);
+        if (knockdownDirection > 0.25f && knockdownDirection < 0.75f) {
+            str = ptr->poiseLargestFwd;
+        } else {
+            str = ptr->poiseLargestBwd;
         }
+        if (TrueHUDControl::GetSingleton()->g_trueHUD) {
+            TrueHUDControl::GetSingleton()->g_trueHUD->
+                FlashActorSpecialBar(SKSE::GetPluginHandle(), a_this->GetHandle(), true);
+        }
+        a_this->NotifyAnimationGraph(str);
+        return false;
     }
     return _IsActorKnockdown(a_this, a_unk);
 

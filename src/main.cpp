@@ -183,26 +183,16 @@ static void MessageHandler(SKSE::MessagingInterface::Message* message) {
         break;
     }
     case SKSE::MessagingInterface::kPostLoad: {
-        if (!TRUEHUD_API::RegisterInterfaceLoaderCallback(SKSE::GetMessagingInterface(),
-            [](void* interfaceInstance, TRUEHUD_API::InterfaceVersion interfaceVersion) {
-            if (interfaceVersion == TRUEHUD_API::InterfaceVersion::V1) {
-                Loki::TrueHUDControl::GetSingleton()->g_trueHUD = reinterpret_cast<TRUEHUD_API::IVTrueHUD1*>(interfaceInstance);
-                logger::info("Obtained TrueHUD API");
-            } else {
-                logger::error("Unable to acquire requested TrueHUD API interface version");
-            }
-        })) {
-            logger::warn("TrueHUD API::RegisterInterfaceLoaderCallback reported an error");
+        Loki::TrueHUDControl::GetSingleton()->g_trueHUD = reinterpret_cast<TRUEHUD_API::IVTrueHUD3*>(TRUEHUD_API::RequestPluginAPI(TRUEHUD_API::InterfaceVersion::V3));
+        if (Loki::TrueHUDControl::GetSingleton()->g_trueHUD) {
+            logger::info("Obtained TrueHUD API -> {0:x}", (uintptr_t)Loki::TrueHUDControl::GetSingleton()->g_trueHUD);
+        }
+        else {
+            logger::warn("Failed to obtain TrueHUD API");
         }
         break;
     }
     case SKSE::MessagingInterface::kPostPostLoad: {
-        if (!TRUEHUD_API::RequestInterface(
-            SKSE::GetMessagingInterface(),
-            TRUEHUD_API::InterfaceVersion::V1))
-            logger::warn("TrueHUD API::RequestInterface reported an error");
-        break;
-        break;
     }
     default:
         break;
