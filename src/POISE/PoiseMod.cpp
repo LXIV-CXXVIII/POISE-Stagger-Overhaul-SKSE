@@ -79,11 +79,15 @@ Loki::PoiseMod::PoiseMod() {
 
     this->ConsoleInfoDump = ini.GetBoolValue("DEBUG", "bConsoleInfoDump", false);
 
-    this->PoiseSystemEnabled    = ini.GetBoolValue("MAIN", "bPoiseSystem", false);
+    this->PlayerPoiseEnabled    = ini.GetBoolValue("MAIN", "bPlayerPoiseEnabled", false);
+    this->NPCPoiseEnabled       = ini.GetBoolValue("MAIN", "bNPCPoiseEnabled", false);
     this->PlayerRagdollReplacer = ini.GetBoolValue("MAIN", "bPlayerRagdollReplacer", false);
     this->NPCRagdollReplacer    = ini.GetBoolValue("MAIN", "bNPCRagdollReplacer", false);
     this->PoiseRegenEnabled     = ini.GetBoolValue("MAIN", "bPoiseRegen", false);
     this->TrueHUDBars           = ini.GetBoolValue("MAIN", "bTrueHUDBars", false);
+    this->poiseBreakThreshhold0  = ini.GetDoubleValue("MAIN", "fPoiseBreakThreshhold0", -1.00f);
+    this->poiseBreakThreshhold1  = ini.GetDoubleValue("MAIN", "fPoiseBreakThreshhold1", -1.00f);
+    this->poiseBreakThreshhold2  = ini.GetDoubleValue("MAIN", "fPoiseBreakThreshhold2", -1.00f);
 
     this->PowerAttackMult = ini.GetDoubleValue("WEAPON", "fPowerAttackMult", -1.00f);
     this->BlockedMult     = ini.GetDoubleValue("WEAPON", "fBlockedMult", -1.00f);
@@ -206,9 +210,13 @@ auto Loki::PoiseMagicDamage::ProcessEvent(const RE::TESHitEvent* a_event, RE::BS
                 RE::ConsoleLog::GetSingleton()->Print("current poise health -> %f", actor->pad0EC);
 
                 float maxPoise = PoiseMod::CalculateMaxPoise(actor);
-                auto prcnt25 = maxPoise * 0.25f;
-                auto prcnt35 = maxPoise * 0.35f;
-                auto prcnt50 = maxPoise * 0.50f;
+                auto threshhold0 = maxPoise * ptr->poiseBreakThreshhold0;
+                auto threshhold1 = maxPoise * ptr->poiseBreakThreshhold1;
+                auto threshhold2 = maxPoise * ptr->poiseBreakThreshhold2;
+
+                //auto prcnt25 = maxPoise * 0.25f;
+                //auto prcnt35 = maxPoise * 0.35f;
+                //auto prcnt50 = maxPoise * 0.50f;
 
                 auto Form = RE::TESForm::LookupByID(a_event->source)->As<RE::Actor>();
                 auto hitPos = Form->GetPosition();
@@ -252,7 +260,7 @@ auto Loki::PoiseMagicDamage::ProcessEvent(const RE::TESHitEvent* a_event, RE::BS
                         }
                     }
                 }
-                else if ((float)actor->pad0EC <= prcnt25 || (float)actor->pad0EC <= 2.00f) {
+                else if ((float)actor->pad0EC <= threshhold0 || (float)actor->pad0EC <= 2.00f) {
                     actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
                     if (actor->HasKeyword(ptr->kCreature) || actor->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
                         actor->SetGraphVariableFloat(ptr->staggerMagn, 0.75f);
@@ -279,7 +287,7 @@ auto Loki::PoiseMagicDamage::ProcessEvent(const RE::TESHitEvent* a_event, RE::BS
                         }
                     }
                 }
-                else if ((float)actor->pad0EC <= prcnt35 || (float)actor->pad0EC <= 5.00f) {
+                else if ((float)actor->pad0EC <= threshhold1 || (float)actor->pad0EC <= 5.00f) {
                     actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
                     if (actor->HasKeyword(ptr->kCreature) || actor->HasKeyword(ptr->kDwarven)) {
                         actor->SetGraphVariableFloat(ptr->staggerMagn, 0.50f);
@@ -306,7 +314,7 @@ auto Loki::PoiseMagicDamage::ProcessEvent(const RE::TESHitEvent* a_event, RE::BS
                         }
                     }
                 }
-                else if ((float)actor->pad0EC <= prcnt50 || (float)actor->pad0EC <= 10.00f) {
+                else if ((float)actor->pad0EC <= threshhold2 || (float)actor->pad0EC <= 10.00f) {
                     actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
                     if (actor->HasKeyword(ptr->kCreature) || actor->HasKeyword(ptr->kDwarven)) {
                         actor->SetGraphVariableFloat(ptr->staggerMagn, 0.25f);
@@ -470,12 +478,16 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
         a_result -= resultingNerf; // aggressor has buff that makes them do less poise damage
     }
 
-    if (a_hitData.flags == RE::HitData::Flag::kPowerAttack) {
-        a_result *= ptr->PowerAttackMult;
+    if (auto data = a_hitData.attackData.get()) {
+        if (data->data.flags == RE::AttackData::AttackFlag::kPowerAttack) {
+            a_result *= ptr->PowerAttackMult;
+        }
+
+        if (data->data.flags == RE::AttackData::AttackFlag::kBashAttack) {
+            a_result *= ptr->BashMult;
+        }
     }
-    if (a_hitData.flags == RE::HitData::Flag::kBash) {
-        a_result *= ptr->BashMult;
-    }
+    
     if (blk) {
         a_result *= ptr->BlockedMult;
     }
@@ -606,7 +618,10 @@ void Loki::PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData)
 
     auto avHealth = a_actor->GetActorValue(RE::ActorValue::kHealth);
     auto avParalysis = a_actor->GetActorValue(RE::ActorValue::kParalysis);
-    if (avHealth <= 0.05f || a_actor->IsInKillMove() || avParalysis || !ptr->PoiseSystemEnabled) { return _ProcessHitEvent(a_actor, a_hitData); }
+    if (avHealth <= 0.05f || a_actor->IsInKillMove() || avParalysis) { return _ProcessHitEvent(a_actor, a_hitData); }
+
+    if (a_actor->IsPlayerRef() && !ptr->PlayerPoiseEnabled) { return _ProcessHitEvent(a_actor, a_hitData); }
+    if (!a_actor->IsPlayerRef() && !ptr->NPCPoiseEnabled) { return _ProcessHitEvent(a_actor, a_hitData); }
 
     float dmg = CalculatePoiseDamage(a_hitData, a_actor);
 
@@ -638,9 +653,13 @@ void Loki::PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData)
     a->Cast(ptr->poiseDelaySpell, false, a_actor, 1.0f, false, 0.0f, 0);
 
     float maxPoise = CalculateMaxPoise(a_actor);
-    auto prcnt25 = maxPoise * 0.25f;
-    auto prcnt35 = maxPoise * 0.35f;
-    auto prcnt50 = maxPoise * 0.50f;
+    auto threshhold0 = maxPoise * ptr->poiseBreakThreshhold0;
+    auto threshhold1 = maxPoise * ptr->poiseBreakThreshhold1;
+    auto threshhold2 = maxPoise * ptr->poiseBreakThreshhold2;
+
+    //auto prcnt25 = maxPoise * 0.25f;
+    //auto prcnt35 = maxPoise * 0.35f;
+    //auto prcnt50 = maxPoise * 0.50f;
 
     bool isBlk = false;
     static RE::BSFixedString str = NULL;
@@ -679,7 +698,7 @@ void Loki::PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData)
             }
         }
     } 
-    else if ((float)a_actor->pad0EC < prcnt25 || (float)a_actor->pad0EC < 2.00f) {
+    else if ((float)a_actor->pad0EC < threshhold0 || (float)a_actor->pad0EC < 2.00f) {
         a_actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
         if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
             a_actor->SetGraphVariableFloat(ptr->staggerMagn, 0.75f);
@@ -708,7 +727,7 @@ void Loki::PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData)
             }
         }
     } 
-    else if ((float)a_actor->pad0EC < prcnt35 || (float)a_actor->pad0EC < 5.00f) {
+    else if ((float)a_actor->pad0EC < threshhold1 || (float)a_actor->pad0EC < 5.00f) {
         a_actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
         if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) {
             a_actor->SetGraphVariableFloat(ptr->staggerMagn, 0.50f);
@@ -737,7 +756,7 @@ void Loki::PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData)
             }
         }
     } 
-    else if ((float)a_actor->pad0EC < prcnt50 || (float)a_actor->pad0EC < 10.00f) {
+    else if ((float)a_actor->pad0EC < threshhold2 || (float)a_actor->pad0EC < 8.00f) {
         a_actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
         if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) {
             a_actor->SetGraphVariableFloat(ptr->staggerMagn, 0.25f);
