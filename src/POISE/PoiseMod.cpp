@@ -340,7 +340,6 @@ auto Loki::PoiseMagicDamage::ProcessEvent(const RE::TESHitEvent* a_event, RE::BS
 }
 
 /*
-    a_result = (creature->GetWeight() x creatureMul) x blockedMul;
     a_result = ((weaponWeight x weaponTypeMul x effectMul) x blockedMul) x hyperArmrMul
 */
 float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_actor) {
@@ -468,14 +467,12 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
 
     auto hasBuff = PluginTools::ActorHasEffectWithKeyword(aggressor, ptr->PoiseDmgBuff->formID);
     if (hasBuff) {
-        logger::info("damage buff keyword detected");
         auto buffPercent = hasBuff->effectItem.magnitude / 100.00f; // convert to percentage
         auto resultingBuff = (a_result * buffPercent);
         a_result += resultingBuff; // aggressor has buff that makes them do more poise damage
     }
     auto hasNerf = PluginTools::ActorHasEffectWithKeyword(aggressor, ptr->PoiseDmgNerf->formID);
     if (hasNerf) {
-        logger::info("damage nerf keyword detected");
         auto nerfPercent = hasNerf->effectItem.magnitude / 100.00f;
         auto resultingNerf = (a_result * nerfPercent);
         a_result -= resultingNerf; // aggressor has buff that makes them do less poise damage
@@ -535,14 +532,12 @@ float Loki::PoiseMod::CalculateMaxPoise(RE::Actor* a_actor) {
 
     auto hasBuff = PluginTools::ActorHasEffectWithKeyword(a_actor, ptr->PoiseHPBuff->formID);
     if (hasBuff) {
-        logger::info("health buff keyword detected");
         auto buffPercent = hasBuff->effectItem.magnitude / 100.00f; // convert to percentage
         auto resultingBuff = (a_result * buffPercent);
         a_result += resultingBuff;
     }
     auto hasNerf = PluginTools::ActorHasEffectWithKeyword(a_actor, ptr->PoiseHPNerf->formID);
     if (hasNerf) {
-        logger::info("health nerf keyword detected");
         auto nerfPercent = hasNerf->effectItem.magnitude / 100.00f;
         auto resultingNerf = (a_result * nerfPercent);
         a_result -= resultingNerf;

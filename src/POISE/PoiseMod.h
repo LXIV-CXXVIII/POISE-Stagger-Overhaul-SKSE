@@ -71,8 +71,8 @@ namespace Loki {
 
         static inline std::unordered_map<RE::TESRace*, std::vector<float>> poiseRaceMap;
 
-        static void ReadPoiseTOML();
         PoiseMod();
+        static void ReadPoiseTOML();
         static PoiseMod* GetSingleton();
 
         static void InstallStaggerHook();

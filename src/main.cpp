@@ -216,7 +216,6 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface * a_
     Loki::PoiseMod::InstallWaterHook();
     Loki::PoiseMod::InstallIsActorKnockdownHook();
     Loki::PoiseMod::InstallMagicEventSink();
-    //Loki_PoiseMod::InstallVFuncHooks();
 
     return true;
 }
