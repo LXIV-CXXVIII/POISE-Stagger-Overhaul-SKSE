@@ -355,7 +355,7 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
     auto aggressor = a_hitData.aggressor.get().get();
 
     auto weap = a_hitData.weapon;
-    float a_result = 0.00f;
+    float a_result = 8.00f;
     bool isSilver = false;
     if (!weap) {
         if (!aggressor) {
@@ -389,9 +389,12 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
                     a_result *= ptr->CaestusMult;
                     break;
                 }
-                if (weap->HasKeyword(0x19AAB4)) {
+                else if (weap->HasKeyword(0x19AAB4)) {
                     a_result *= ptr->ClawMult;
                     break;
+                }
+                else {
+                    a_result = CalculateMaxPoise(aggressor);
                 }
                 a_result *= ptr->Hand2Hand;
                 break;
