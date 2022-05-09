@@ -696,7 +696,7 @@ void Loki::PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData)
             }
         }
     } 
-    else if ((float)a_actor->pad0EC < threshhold0 || (float)a_actor->pad0EC < 2.00f) {
+    else if ((float)a_actor->pad0EC < threshhold0) {
         a_actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
         if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) { // if creature, use normal beh
             a_actor->SetGraphVariableFloat(ptr->staggerMagn, 0.75f);
@@ -725,7 +725,7 @@ void Loki::PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData)
             }
         }
     } 
-    else if ((float)a_actor->pad0EC < threshhold1 || (float)a_actor->pad0EC < 5.00f) {
+    else if ((float)a_actor->pad0EC < threshhold1) {
         a_actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
         if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) {
             a_actor->SetGraphVariableFloat(ptr->staggerMagn, 0.50f);
@@ -754,7 +754,7 @@ void Loki::PoiseMod::ProcessHitEvent(RE::Actor* a_actor, RE::HitData& a_hitData)
             }
         }
     } 
-    else if ((float)a_actor->pad0EC < threshhold2 || (float)a_actor->pad0EC < 8.00f) {
+    else if ((float)a_actor->pad0EC < threshhold2) {
         a_actor->SetGraphVariableFloat(ptr->staggerDire, stagDir); // set direction
         if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) {
             a_actor->SetGraphVariableFloat(ptr->staggerMagn, 0.25f);
