@@ -105,11 +105,13 @@ namespace PoiseMod {  // Papyrus Functions
                     RE::TESRace* a_mapRace = idx.first;
                     if (a_actorRace && a_mapRace) {
                         if (a_actorRace->formID == a_mapRace->formID) {
-                            if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) {
+                            a_result = idx.second[1];
+                            /*if (a_actor->HasKeyword(ptr->kCreature) || a_actor->HasKeyword(ptr->kDwarven)) {
                                 a_result = idx.second[1];
                             } else {
                                 a_result *= idx.second[1];
                             }
+                            */
                             break;
                         }
                     }
