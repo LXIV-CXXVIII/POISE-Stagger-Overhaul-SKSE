@@ -381,7 +381,7 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
     else {
         a_result = weap->weight;
         if (a_hitData.weapon->weaponData.flags2.any(RE::TESObjectWEAP::Data::Flag2::kBoundWeapon)) {
-            a_result = a_actor->GetBaseActorValue(RE::ActorValue::kConjuration) * 0.5;
+            a_result = 8 + a_actor->GetBaseActorValue(RE::ActorValue::kConjuration) * 0.15;
         }
 
         switch (weap->weaponData.animationType.get()) {
