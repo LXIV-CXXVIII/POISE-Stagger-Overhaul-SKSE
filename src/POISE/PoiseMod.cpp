@@ -211,7 +211,9 @@ auto Loki::PoiseMagicDamage::ProcessEvent(const RE::TESHitEvent* a_event, RE::BS
                 actor->pad0EC -= (int)a_result;
                 if (actor->pad0EC > 100000) { actor->pad0EC = 0.00f; }
 
-                RE::ConsoleLog::GetSingleton()->Print("current poise health -> %f", actor->pad0EC);
+                if (ptr->ConsoleInfoDump) {
+                    RE::ConsoleLog::GetSingleton()->Print("current poise health -> %f", actor->pad0EC);
+                }
 
                 float maxPoise = PoiseMod::CalculateMaxPoise(actor);
                 auto threshhold0 = maxPoise * ptr->poiseBreakThreshhold0;
@@ -378,6 +380,9 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
     }
     else {
         a_result = weap->weight;
+        if (a_hitData.weapon->weaponData.flags2.any(RE::TESObjectWEAP::Data::Flag2::kBoundWeapon)) {
+            a_result = a_actor->GetBaseActorValue(RE::ActorValue::kConjuration) * 0.5;
+        }
 
         switch (weap->weaponData.animationType.get()) {
         
@@ -562,7 +567,7 @@ bool Loki::PoiseMod::IsActorKnockdown(RE::Character* a_this, std::int64_t a_unk)
     auto ptr = Loki::PoiseMod::GetSingleton();
 
     auto avHealth = a_this->GetActorValue(RE::ActorValue::kHealth);
-    if (a_this->IsOnMount() || avHealth <= 0.00f) {
+    if (a_this->IsOnMount() || avHealth <= 0.05f) {
         return _IsActorKnockdown(a_this, a_unk);
     }
     static RE::BSFixedString str = NULL;
