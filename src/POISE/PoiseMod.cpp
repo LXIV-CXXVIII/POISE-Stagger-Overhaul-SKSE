@@ -89,19 +89,20 @@ Loki::PoiseMod::PoiseMod() {
     this->poiseBreakThreshhold1  = ini.GetDoubleValue("MAIN", "fPoiseBreakThreshhold1", -1.00f);
     this->poiseBreakThreshhold2  = ini.GetDoubleValue("MAIN", "fPoiseBreakThreshhold2", -1.00f);
 
-    this->PowerAttackMult = ini.GetDoubleValue("WEAPON", "fPowerAttackMult", -1.00f);
-    this->BlockedMult     = ini.GetDoubleValue("WEAPON", "fBlockedMult", -1.00f);
-    this->BashMult        = ini.GetDoubleValue("WEAPON", "fBashMult", -1.00f);
-    this->HyperArmourMult = ini.GetDoubleValue("WEAPON", "fHyperArmourMult", -1.00f);
-    this->BowMult         = ini.GetDoubleValue("WEAPON", "fBowMult", -1.00f);
-    this->CrossbowMult    = ini.GetDoubleValue("WEAPON", "fCrossbowMult", -1.00f);
-    this->Hand2Hand       = ini.GetDoubleValue("WEAPON", "fHand2HandMult", -1.00f);
-    this->OneHandAxe      = ini.GetDoubleValue("WEAPON", "fOneHandAxeMult", -1.00f);
-    this->OneHandDagger   = ini.GetDoubleValue("WEAPON", "fOneHandDaggerMult", -1.00f);
-    this->OneHandMace     = ini.GetDoubleValue("WEAPON", "fOneHandMaceMult", -1.00f);
-    this->OneHandSword    = ini.GetDoubleValue("WEAPON", "fOneHandSwordMult", -1.00f);
-    this->TwoHandAxe      = ini.GetDoubleValue("WEAPON", "fTwoHandAxeMult", -1.00f);
-    this->TwoHandSword    = ini.GetDoubleValue("WEAPON", "fTwoHandSwordMult", -1.00f);
+    this->PowerAttackMult      = ini.GetDoubleValue("WEAPON", "fPowerAttackMult", -1.00f);
+    this->BlockedMult          = ini.GetDoubleValue("WEAPON", "fBlockedMult", -1.00f);
+    this->BashMult             = ini.GetDoubleValue("WEAPON", "fBashMult", -1.00f);
+    this->MeleeHyperArmourMult = ini.GetDoubleValue("WEAPON", "fMeleeHyperArmourMult", -1.00f);
+    this->SpellHyperArmourMult = ini.GetDoubleValue("WEAPON", "fSpellHyperArmourMult", -1.00f);
+    this->BowMult              = ini.GetDoubleValue("WEAPON", "fBowMult", -1.00f);
+    this->CrossbowMult         = ini.GetDoubleValue("WEAPON", "fCrossbowMult", -1.00f);
+    this->Hand2Hand            = ini.GetDoubleValue("WEAPON", "fHand2HandMult", -1.00f);
+    this->OneHandAxe           = ini.GetDoubleValue("WEAPON", "fOneHandAxeMult", -1.00f);
+    this->OneHandDagger        = ini.GetDoubleValue("WEAPON", "fOneHandDaggerMult", -1.00f);
+    this->OneHandMace          = ini.GetDoubleValue("WEAPON", "fOneHandMaceMult", -1.00f);
+    this->OneHandSword         = ini.GetDoubleValue("WEAPON", "fOneHandSwordMult", -1.00f);
+    this->TwoHandAxe           = ini.GetDoubleValue("WEAPON", "fTwoHandAxeMult", -1.00f);
+    this->TwoHandSword         = ini.GetDoubleValue("WEAPON", "fTwoHandSwordMult", -1.00f);
 
     this->RapierMult   = ini.GetDoubleValue("ANIMATED_ARMOURY", "fRapierMult", -1.00f);
     this->PikeMult     = ini.GetDoubleValue("ANIMATED_ARMOURY", "fPikeMult", -1.00f);
@@ -357,8 +358,12 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
     auto ptr = Loki::PoiseMod::GetSingleton();
 
     bool blk, atk;
+    bool cst_r, cst_l, cst_d;
     a_actor->GetGraphVariableBool("IsBlocking", blk);
     a_actor->GetGraphVariableBool("IsAttacking", atk);
+    a_actor->GetGraphVariableBool("IsCastingRight", cst_r);
+    a_actor->GetGraphVariableBool("IsCastingLeft", cst_l);
+    a_actor->GetGraphVariableBool("IsCastingDual", cst_d);
     auto aggressor = a_hitData.aggressor.get().get();
 
     auto weap = a_hitData.weapon;
@@ -381,7 +386,7 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
     else {
         a_result = weap->weight;
         if (a_hitData.weapon->weaponData.flags2.any(RE::TESObjectWEAP::Data::Flag2::kBoundWeapon)) {
-            a_result = 8 + a_actor->GetBaseActorValue(RE::ActorValue::kConjuration) * 0.15;
+            a_result = 8.00f + a_actor->GetBaseActorValue(RE::ActorValue::kConjuration) * 0.15;
         }
 
         switch (weap->weaponData.animationType.get()) {
@@ -505,7 +510,10 @@ float Loki::PoiseMod::CalculatePoiseDamage(RE::HitData& a_hitData, RE::Actor* a_
         a_result *= ptr->BlockedMult;
     }
     if (atk) {
-        a_result *= ptr->HyperArmourMult;
+        a_result *= ptr->MeleeHyperArmourMult;
+    }
+    if (cst_r || cst_l || cst_d) {
+        a_result *= ptr->SpellHyperArmourMult;
     }
 
     if (a_actor->HasKeyword(ptr->kGhost) && !isSilver) {

@@ -32,7 +32,7 @@ namespace Loki {
         float poiseBreakThreshhold0, poiseBreakThreshhold1, poiseBreakThreshhold2;
         float BowMult, CrossbowMult, Hand2Hand, OneHandAxe, OneHandDagger, OneHandMace, OneHandSword, TwoHandAxe, TwoHandSword;
         float RapierMult, PikeMult, SpearMult, HalberdMult, QtrStaffMult, CaestusMult, ClawMult, WhipMult;
-        float PowerAttackMult, BlockedMult, BashMult, HyperArmourMult;
+        float PowerAttackMult, BlockedMult, BashMult, MeleeHyperArmourMult, SpellHyperArmourMult;
         bool PlayerPoiseEnabled, NPCPoiseEnabled, PlayerRagdollReplacer, NPCRagdollReplacer, PoiseRegenEnabled, TrueHUDBars;
 
         const RE::BSFixedString ae_Stagger = "staggerStart";
